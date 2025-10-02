@@ -1,0 +1,38 @@
+{
+    "name": "districhat",
+    "version": "1.0",
+    "private": true,
+    "description": "Distributed system  application.",
+    "scripts": {
+        "start": "python manage.py runserver 0.0.0.0:8001",
+        "tailwindcss": "tailwindcss -i ./static/css/config.css -o ./static/css/styles.css --watch --minify"
+    },
+    "browserslist": {
+        "production": [
+            ">0.2%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 1 chrome version",
+            "last 1 firefox version",
+            "last 1 safari version"
+        ]
+    },
+    "keywords": [
+        "districhat",
+        "sistributed systems",
+        "chat"
+    ],
+    "bugs": {
+        "url": "https://github.com/skye-cyber/districhat/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/skye-cyber/districhat.git"
+    },
+    "license": "GPL",
+    "author": "skye",
+    "dependencies": {},
+    "devDependencies": {}
+}

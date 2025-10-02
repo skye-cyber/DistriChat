@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}DistriChat - Distributed Chat System{% endblock %}
+    </title>
+
+    {% load static %}
+    <script type="text/javascript" src="{% static 'js/UI-X/packed_aosanimate.js' %}"></script>
+
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <!-- Custom Styles -->
+    <style>
+      .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .nav-glass {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .pulse-animation {
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+
+      .floating {
+        animation: floating 3s ease-in-out infinite;
+      }
+
+      @keyframes floating {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+
+      .typewriter {
+        overflow: hidden;
+        border-right: 2px solid #667eea;
+        white-space: nowrap;
+        animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+      }
+
+      @keyframes typing {
+        from { width: 0 }
+        to { width: 100% }
+      }
+
+      @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: #667eea }
+      }
+
+      .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+    <!-- Enhanced Navigation -->
+    <nav class="gradient-bg text-white shadow-xl relative overflow-hidden">
+      <!-- Animated background elements -->
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-10 -left-10 w-20 h-20 bg-white rounded-full opacity-10 floating"></div>
+        <div class="absolute top-20 -right-10 w-16 h-16 bg-white rounded-full opacity-10 floating" style="animation-delay: 1s;"></div>
+        <div class="absolute bottom-10 left-1/4 w-12 h-12 bg-white rounded-full opacity-10 floating" style="animation-delay: 2s;"></div>
+      </div>
+
+      <div class="max-w-7xl mx-auto px-4 relative z-10">
+        <div class="flex justify-between items-center py-4">
+          <!-- Logo with animation -->
+          <a href="{% url 'index' %}" class="flex items-center space-x-3 group">
+            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <svg class="w-6 h-6 gradient-text stroke-[#667eea]" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+              </svg>
+            </div>
+            <span class="text-2xl font-bold bg-white bg-opacity-20 px-3 py-1 rounded-lg backdrop-blur-sm">DistriChat</span>
+          </a>
+
+          <!-- Navigation Links -->
+          <div class="flex items-center space-x-6">
+            {% if user.is_authenticated %}
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center space-x-3 bg-white bg-opacity-20 px-4 py-2 rounded-lg backdrop-blur-sm">
+                <a class="flex gap-2" href="{% url 'users:profile' %}">
+                  <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold gradient-text">{{ user.username|first|upper }}</span>
+                  </div>
+                  <span class="font-medium">Welcome, {{ user.username }}</span>
+                </a>
+              </div>
+              <a href="{% url 'chat:dashboard' %}"
+                 class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+                <span>Dashboard</span>
+              </a>
+              <a href="{% url 'nodes:dashboard' %}"
+                 class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 flex items-center space-x-2">
+                <svg class="h-7 w-7 fill-cyan-800" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M316.3 516C314.2 516 312.1 515.4 310.2 514.4L291 503C288.1 501.4 289.5 500.8 290.5 500.5C294.3 499.2 295.1 498.9 299.2 496.5C299.6 496.3 300.2 496.4 300.6 496.6L315.4 505.4C315.9 505.7 316.7 505.7 317.2 505.4L375 472C375.5 471.7 375.9 471.1 375.9 470.4L375.9 403.7C375.9 403 375.6 402.4 375 402.1L317.2 368.8C316.7 368.5 316 368.5 315.4 368.8L257.6 402.1C257 402.4 256.7 403.1 256.7 403.7L256.7 470.4C256.7 471 257.1 471.6 257.6 471.9L273.4 481C282 485.3 287.3 480.2 287.3 475.2L287.3 409.3C287.3 408.4 288 407.6 289 407.6L296.3 407.6C297.2 407.6 298 408.3 298 409.3L298 475.2C298 486.7 291.8 493.2 280.9 493.2C277.6 493.2 274.9 493.2 267.6 489.6L252.4 480.9C248.7 478.7 246.3 474.7 246.3 470.4L246.3 403.7C246.3 399.4 248.6 395.3 252.4 393.2L310.2 359.8C313.9 357.7 318.7 357.7 322.3 359.8L380.1 393.2C383.8 395.4 386.2 399.4 386.2 403.7L386.2 470.4C386.2 474.7 383.9 478.8 380.1 480.9L322.3 514.3C320.6 515.4 318.5 516 316.3 516zM363 450.2C363 437.7 354.6 434.4 336.8 432C318.8 429.6 317 428.4 317 424.2C317 420.7 318.5 416.1 331.8 416.1C343.7 416.1 348.1 418.7 349.9 426.7C350.1 427.5 350.7 428 351.5 428L359 428C359.5 428 359.9 427.8 360.2 427.5C360.5 427.1 360.7 426.7 360.6 426.2C359.4 412.4 350.3 406 331.8 406C315.3 406 305.5 413 305.5 424.6C305.5 437.3 315.3 440.7 331.1 442.3C350 444.2 351.5 446.9 351.5 450.6C351.5 457.1 346.3 459.8 334.1 459.8C318.8 459.8 315.4 456 314.3 448.4C314.2 447.6 313.5 447 312.6 447L305.1 447C304.2 447 303.4 447.7 303.4 448.7C303.4 458.4 308.7 470 334 470C352.5 470 363 462.8 363 450.2zM417.5 400.1C417.5 406.2 412.5 411.2 406.4 411.2C400.3 411.2 395.3 406.2 395.3 400.1C395.3 393.8 400.5 389 406.4 389C412.4 388.9 417.5 393.8 417.5 400.1zM415.7 400.1C415.7 394.9 411.5 390.8 406.3 390.8C401.2 390.8 397 394.9 397 400.1C397 405.3 401.2 409.5 406.3 409.5C411.5 409.4 415.7 405.2 415.7 400.1zM411.2 406.3L408.6 406.3C408.5 405.7 408.1 402.5 408.1 402.4C407.9 401.7 407.7 401.3 406.8 401.3L404.6 401.3L404.6 406.3L402.2 406.3L402.2 393.8L406.5 393.8C408 393.8 410.9 393.8 410.9 397.1C410.9 399.4 409.4 399.9 408.5 400.2C410.2 400.3 410.3 401.4 410.6 403C410.7 404 410.9 405.7 411.2 406.3zM408.4 397.5C408.4 395.8 407.2 395.8 406.6 395.8L404.6 395.8L404.6 399.3L406.5 399.3C408.1 399.3 408.4 398.2 408.4 397.5zM137.3 255C137.3 252.3 135.9 249.9 133.6 248.6L72.3 213.3C71.3 212.7 70.1 212.4 68.9 212.3L68.3 212.3C67.1 212.3 66 212.7 64.9 213.3L3.7 248.6C1.4 249.9 0 252.4 0 255L.1 350C.1 351.3 .8 352.5 1.9 353.2C3 353.9 4.4 353.9 5.6 353.2L42 332.3C44.3 330.9 45.7 328.5 45.7 325.9L45.7 281.5C45.7 278.9 47.1 276.4 49.4 275.1L64.9 266.2C66.1 265.5 67.3 265.2 68.6 265.2C69.9 265.2 71.2 265.5 72.3 266.2L87.8 275.1C90.1 276.4 91.5 278.9 91.5 281.5L91.5 325.9C91.5 328.5 92.9 331 95.2 332.3L131.6 353.2C132.7 353.9 134.2 353.9 135.3 353.2C136.4 352.6 137.1 351.3 137.1 350L137.3 255zM472.5 151.3L472.5 327.7C472.5 330.3 471.1 332.8 468.8 334.1L407.5 369.5C405.2 370.8 402.4 370.8 400.1 369.5L338.8 334.1C336.5 332.8 335.1 330.3 335.1 327.7L335.1 256.9C335.1 254.3 336.5 251.8 338.8 250.5L400.1 215.1C402.4 213.8 405.2 213.8 407.5 215.1L422.8 223.9C424.5 224.9 426.7 223.6 426.7 221.7L426.7 127.7C426.7 124.9 429.7 123.1 432.2 124.5L468.7 144.9C471 146.1 472.5 148.6 472.5 151.3zM426.5 280.2C426.5 279.5 426.1 278.9 425.6 278.6L404.6 266.4C404 266.1 403.3 266.1 402.7 266.4L381.7 278.6C381.1 278.9 380.8 279.5 380.8 280.2L380.8 304.5C380.8 305.2 381.2 305.8 381.7 306.1L402.7 318.2C403.3 318.5 404 318.5 404.5 318.2L425.5 306.1C426.1 305.8 426.4 305.2 426.4 304.5L426.4 280.2L426.5 280.2zM636.3 279.5C638.6 278.2 640 275.7 640 273.1L640 256C640 253.4 638.6 250.9 636.3 249.6L575.4 214.2C573.1 212.9 570.3 212.9 568 214.2L506.7 249.6C504.4 250.9 503 253.4 503 256L503 326.8C503 329.5 504.4 331.9 506.7 333.2L567.6 367.9C569.8 369.2 572.6 369.2 574.9 367.9L611.7 347.4C614.2 346 614.2 342.4 611.7 341L550 305.6C548.8 304.9 548.1 303.7 548.1 302.4L548.1 280.2C548.1 278.9 548.8 277.7 550 277L569.2 265.9C570.3 265.2 571.8 265.2 572.9 265.9L592.1 277C593.2 277.7 594 278.9 594 280.2L594 297.6C594 300.4 597.1 302.2 599.6 300.8L636.3 279.5zM559 283C558.6 283.3 558.3 283.7 558.3 284.2L558.3 297.8C558.3 298.3 558.6 298.8 559 299L570.8 305.8C571.2 306.1 571.8 306.1 572.2 305.8L584 299C584.4 298.7 584.7 298.3 584.7 297.8L584.7 284.2C584.7 283.7 584.4 283.2 584 283L572.2 276.2C571.8 275.9 571.2 275.9 570.8 276.2L559 283zM304.8 326.5L304.8 256.1C304.8 253.5 303.2 251 300.9 249.7L239.8 214.5C237.7 213.3 234.8 213.1 232.4 214.5L171.3 249.7C169 251 167.4 253.4 167.4 256.1L167.4 326.5C167.4 329.3 169.3 331.7 171.4 332.9L232.6 368.1C235 369.5 237.8 369.4 240 368.1L301 332.9C302.8 331.9 304.1 330.2 304.6 328.2C304.7 327.7 304.8 327.1 304.8 326.5zM230.5 201.6L229.7 202.1L230.8 202.1L230.5 201.6zM306.7 331.8L306.3 331.1L306.3 332L306.7 331.8z"/></svg>
+                <span>Nodes</span>
+              </a>
+              <a href="{% url 'users:logout' %}"
+                 class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 flex items-center space-x-2 shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                <span>Logout</span>
+              </a>
+            </div>
+            {% else %}
+            <div class="flex items-center space-x-4">
+              <a href="{% url 'users:login' %}"
+                 class="bg-white bg-opacity-20 hover:bg-opacity-30 px-6 py-2 rounded-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                </svg>
+                <span>Login</span>
+              </a>
+              <a href="{% url 'users:register' %}"
+                 class="btn-primary px-6 py-2 rounded-lg text-white flex items-center space-x-2 shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                </svg>
+                <span>Register</span>
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% include 'includes/messages.html' %}
+
+    <!-- Main Content -->
+    <main class="relative">
+      <!-- Background decoration -->
+      <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-1/4 left-10 w-4 h-4 bg-purple-300 rounded-full opacity-50 floating"></div>
+        <div class="absolute top-1/3 right-20 w-6 h-6 bg-blue-300 rounded-full opacity-30 floating" style="animation-delay: 1s;"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-8 h-8 bg-indigo-200 rounded-full opacity-40 floating" style="animation-delay: 2s;"></div>
+      </div>
+
+      {% block content %}
+      {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-8 mt-16">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div class="col-span-1 md:col-span-2">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 gradient-text stroke-[#667eea]" fill="none" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+              </div>
+              <span class="text-xl font-bold">DistriChat</span>
+            </div>
+            <p class="text-blue-100 max-w-md">
+              A distributed chat system that scales across multiple nodes. Experience real-time messaging with high availability and reliability.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold mb-4">Quick Links</h3>
+            <ul class="space-y-2 text-blue-100">
+              <li><a href="{% url 'index' %}" class="hover:text-white transition-colors">Home</a></li>
+              {% if user.is_authenticated %}
+              <li><a href="{% url 'chat:dashboard' %}" class="hover:text-white transition-colors">Dashboard</a></li>
+              {% else %}
+              <li><a href="{% url 'users:login' %}" class="hover:text-white transition-colors">Login</a></li>
+              <li><a href="{% url 'users:register' %}" class="hover:text-white transition-colors">Register</a></li>
+              {% endif %}
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold mb-4">System</h3>
+            <ul class="space-y-2 text-blue-100">
+              <li class="flex items-center space-x-2">
+                <div class="w-2 h-2 bg-green-400 rounded-full pulse-animation"></div>
+                <span>All Systems Operational</span>
+              </li>
+              <li><a href="#" class="hover:text-white transition-colors">Status</a></li>
+              <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="border-t border-blue-400 mt-8 pt-6 text-center text-blue-200">
+          <p>&copy; 2024 DistriChat. Built with Django & TailwindCSS.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+// Global utility functions for UI management
+window.UIUtils = {
+    /**
+     * Show a floating message/toast notification
+     * @param {string} message - The message to display
+     * @param {string} type - Message type: 'success', 'error', 'warning', 'info'
+     * @param {boolean} autoDismiss - Whether to auto-dismiss after timeout
+     * @param {number} duration - Duration in milliseconds (default: 5000)
+     */
+    showMessage: function(message, type = 'info', autoDismiss = true, duration = 5000) {
+        // Create message container if it doesn't exist
+        let container = document.getElementById('message-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'message-container';
+            container.className = 'fixed top-20 right-6 z-50 space-y-3 max-w-sm w-full';
+            document.body.appendChild(container);
+        }
+
+        const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+        // Type configuration
+        const typeConfig = {
+            'error': {
+                bg: 'bg-gradient-to-r from-red-500 to-red-600',
+                icon: '❌',
+                progress: 'bg-red-400'
+            },
+            'warning': {
+                bg: 'bg-gradient-to-r from-yellow-500 to-yellow-600',
+                icon: '⚠️',
+                progress: 'bg-yellow-400'
+            },
+            'success': {
+                bg: 'bg-gradient-to-r from-green-500 to-green-600',
+                icon: '✅',
+                progress: 'bg-green-400'
+            },
+            'info': {
+                bg: 'bg-gradient-to-r from-blue-500 to-blue-600',
+                icon: 'ℹ️',
+                progress: 'bg-blue-400'
+            }
+        }[type] || {
+            bg: 'bg-gradient-to-r from-gray-600 to-gray-700',
+            icon: '💬',
+            progress: 'bg-gray-400'
+        };
+
+        const messageHtml = `
+            <div id="${messageId}"
+                 class="message-alert transform transition-all duration-500 ease-out opacity-0 translate-x-full card-hover"
+                 data-message-id="${messageId}"
+                 data-auto-dismiss="${autoDismiss}">
+                <div class="${typeConfig.bg} text-white rounded-xl shadow-2xl p-4 relative overflow-hidden">
+                    <!-- Animated background -->
+                    <div class="absolute inset-0 bg-white opacity-10"></div>
+
+                    <!-- Message Content -->
+                    <div class="flex items-start relative z-10">
+                        <!-- Animated Icon -->
+                        <div class="flex-shrink-0 mr-3">
+                            <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center pulse-animation">
+                                ${typeConfig.icon}
+                            </div>
+                        </div>
+
+                        <!-- Message Text -->
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold leading-tight">${this.escapeHtml(message)}</p>
+                        </div>
+
+                        <!-- Close Button -->
+                        <button type="button"
+                                class="ml-3 flex-shrink-0 w-6 h-6 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+                                onclick="window.UIUtils.dismissMessage('${messageId}')">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    ${autoDismiss ? `
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-20">
+                        <div class="h-full ${typeConfig.progress} progress-bar rounded-full"
+                             style="animation-duration: ${duration}ms"></div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', messageHtml);
+        const newMessage = document.getElementById(messageId);
+
+        // Animate in
+        setTimeout(() => {
+            newMessage.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            newMessage.classList.remove('opacity-0', 'translate-x-full');
+            newMessage.classList.add('opacity-100', 'translate-x-0');
+        }, 10);
+
+        // Auto-dismiss
+        if (autoDismiss) {
+            newMessage.dismissTimer = setTimeout(() => {
+                this.dismissMessage(messageId);
+            }, duration);
+        }
+
+        return messageId;
+    },
+
+    /**
+     * Dismiss a specific message
+     * @param {string} messageId - The ID of the message to dismiss
+     */
+    dismissMessage: function(messageId) {
+        const message = document.getElementById(messageId);
+        if (!message) return;
+
+        // Clear auto-dismiss timer
+        if (message.dismissTimer) {
+            clearTimeout(message.dismissTimer);
+        }
+
+        // Animate out
+        message.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        message.classList.remove('opacity-100', 'translate-x-0');
+        message.classList.add('opacity-0', 'translate-x-full', 'scale-95');
+
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (message.parentNode) {
+                message.parentNode.removeChild(message);
+
+                // Remove container if no messages left
+                const container = document.getElementById('message-container');
+                if (container && container.children.length === 0) {
+                    container.remove();
+                }
+            }
+        }, 400);
+    },
+
+    /**
+     * Show loading state on an element
+     * @param {HTMLElement} element - The element to show loading state on
+     * @param {string} loadingText - Optional custom loading text
+     * @returns {string} The original innerHTML for restoration
+     */
+    showLoading: function(element, loadingText = null) {
+        if (!element) return null;
+
+        const originalContent = element.innerHTML;
+        const isButton = element.tagName === 'BUTTON';
+
+        element.innerHTML = `
+            <div class="flex items-center justify-center space-x-2">
+                <div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-current">${loadingText || 'Loading...'}</span>
+            </div>
+        `;
+
+        element.disabled = true;
+        element.setAttribute('data-original-content', originalContent);
+
+        // Store original styles for restoration
+        element.setAttribute('data-original-cursor', element.style.cursor);
+        element.style.cursor = 'not-allowed';
+
+        if (isButton) {
+            element.setAttribute('data-original-bg', element.style.background);
+            element.style.background = 'var(--loading-bg, #9ca3af)';
+        }
+
+        return originalContent;
+    },
+
+    /**
+     * Hide loading state and restore element to original state
+     * @param {HTMLElement} element - The element to restore
+     * @param {string} originalContent - The original innerHTML (optional, will use stored if not provided)
+     */
+    hideLoading: function(element, originalContent = null) {
+        if (!element) return;
+
+        const storedContent = element.getAttribute('data-original-content');
+        const contentToRestore = originalContent || storedContent;
+
+        if (contentToRestore) {
+            element.innerHTML = contentToRestore;
+        }
+
+        element.disabled = false;
+
+        // Restore original styles
+        const originalCursor = element.getAttribute('data-original-cursor');
+        element.style.cursor = originalCursor || '';
+
+        if (element.tagName === 'BUTTON') {
+            const originalBg = element.getAttribute('data-original-bg');
+            element.style.background = originalBg || '';
+        }
+
+        // Clean up data attributes
+        element.removeAttribute('data-original-content');
+        element.removeAttribute('data-original-cursor');
+        element.removeAttribute('data-original-bg');
+    },
+
+    /**
+     * Show a confirmation dialog
+     * @param {string} message - The confirmation message
+     * @param {string} title - Dialog title
+     * @returns {Promise<boolean>} Promise that resolves to true if confirmed, false if cancelled
+     */
+    confirm: function(message, title = 'Confirm Action') {
+        return new Promise((resolve) => {
+            const dialogId = 'confirm-dialog-' + Date.now();
+            const dialogHtml = `
+                <div id="${dialogId}" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-xl font-bold text-gray-900">${this.escapeHtml(title)}</h3>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-700 mb-6">${this.escapeHtml(message)}</p>
+                            <div class="flex space-x-3">
+                                <button type="button"
+                                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+                                        onclick="window.UIUtils.hideConfirmDialog('${dialogId}', false)">
+                                    Cancel
+                                </button>
+                                <button type="button"
+                                        class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+                                        onclick="window.UIUtils.hideConfirmDialog('${dialogId}', true)">
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', dialogHtml);
+            const dialog = document.getElementById(dialogId);
+            const content = dialog.querySelector('.bg-white');
+
+            // Animate in
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // Store resolve function
+            dialog.resolveFunction = resolve;
+
+            // Escape key to cancel
+            const escapeHandler = (e) => {
+                if (e.key === 'Escape') {
+                    this.hideConfirmDialog(dialogId, false);
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+            dialog.escapeHandler = escapeHandler;
+        });
+    },
+
+    /**
+     * Hide confirmation dialog
+     * @param {string} dialogId - The dialog ID
+     * @param {boolean} confirmed - Whether action was confirmed
+     */
+    hideConfirmDialog: function(dialogId, confirmed) {
+        const dialog = document.getElementById(dialogId);
+        if (!dialog) return;
+
+        const content = dialog.querySelector('.bg-white');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+
+        // Remove event listener
+        if (dialog.escapeHandler) {
+            document.removeEventListener('keydown', dialog.escapeHandler);
+        }
+
+        // Resolve promise and remove dialog
+        setTimeout(() => {
+            if (dialog.resolveFunction) {
+                dialog.resolveFunction(confirmed);
+            }
+            dialog.remove();
+        }, 300);
+    },
+
+    /**
+     * Show a modal with custom content
+     * @param {string} title - Modal title
+     * @param {string} content - Modal content HTML
+     * @param {Object} options - Modal options
+     * @returns {string} Modal ID
+     */
+    showModal: function(title, content, options = {}) {
+        const modalId = 'modal-' + Date.now();
+        const { size = 'max-w-md', showClose = true } = options;
+
+        const modalHtml = `
+            <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-2xl shadow-2xl w-full ${size} mx-4 transform transition-all duration-300 scale-95 opacity-0">
+                    <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-900">${this.escapeHtml(title)}</h3>
+                        ${showClose ? `
+                        <button type="button"
+                                class="text-gray-400 hover:text-gray-600 transition-colors"
+                                onclick="window.UIUtils.hideModal('${modalId}')">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                        ` : ''}
+                    </div>
+                    <div class="p-6">
+                        ${content}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = document.getElementById(modalId);
+        const modalContent = modal.querySelector('.bg-white');
+
+        // Animate in
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95', 'opacity-0');
+            modalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.hideModal(modalId);
+            }
+        });
+
+        return modalId;
+    },
+
+    /**
+     * Hide a modal
+     * @param {string} modalId - The modal ID
+     */
+    hideModal: function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        const modalContent = modal.querySelector('.bg-white');
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    },
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    escapeHtml: function(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * Make an AJAX request with loading states and error handling
+     * @param {string} url - The URL to request
+     * @param {Object} options - Request options
+     * @returns {Promise} Promise that resolves with response data
+     */
+    ajax: function(url, options = {}) {
+        const {
+            method = 'GET',
+            data = null,
+            headers = {},
+            loadingElement = null,
+            successMessage = null,
+            errorMessage = 'An error occurred',
+            csrfToken = this.getCsrfToken()
+        } = options;
+
+        let originalContent = null;
+
+        // Show loading state if element provided
+        if (loadingElement) {
+            originalContent = this.showLoading(loadingElement);
+        }
+
+        return fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                ...headers
+            },
+            body: data ? JSON.stringify(data) : null
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Hide loading state
+            if (loadingElement) {
+                this.hideLoading(loadingElement, originalContent);
+            }
+
+            // Show success message if provided
+            if (successMessage && data.status === 'success') {
+                this.showMessage(successMessage, 'success');
+            }
+
+            return data;
+        })
+        .catch(error => {
+            // Hide loading state
+            if (loadingElement) {
+                this.hideLoading(loadingElement, originalContent);
+            }
+
+            // Show error message
+            const message = errorMessage || error.message;
+            this.showMessage(message, 'error');
+
+            throw error;
+        });
+    },
+
+    /**
+     * Get CSRF token from cookies
+     * @returns {string} CSRF token
+     */
+    getCsrfToken: function() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    },
+
+    /**
+     * Initialize all UI components
+     */
+    initialize: function() {
+        this.initializeMessages();
+        this.setupGlobalEventListeners();
+    },
+
+    /**
+     * Initialize existing messages on page load
+     */
+    initializeMessages: function() {
+        const messageAlerts = document.querySelectorAll('.message-alert');
+
+        messageAlerts.forEach((alert, index) => {
+            // Staggered entrance animation
+            setTimeout(() => {
+                alert.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                alert.classList.remove('opacity-0', 'translate-x-full');
+                alert.classList.add('opacity-100', 'translate-x-0');
+            }, 150 * index);
+
+            // Auto-dismiss if enabled
+            if (alert.dataset.autoDismiss === 'true') {
+                alert.dismissTimer = setTimeout(() => {
+                    this.dismissMessage(alert.id);
+                }, 5000);
+            }
+        });
+    },
+
+    /**
+     * Setup global event listeners
+     */
+    setupGlobalEventListeners: function() {
+        // Escape key to dismiss messages and modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Dismiss all messages
+                const messages = document.querySelectorAll('.message-alert');
+                messages.forEach(msg => this.dismissMessage(msg.id));
+
+                // Close open modals (you might want to be more specific)
+                const modals = document.querySelectorAll('[id^="modal-"], [id^="confirm-dialog-"]');
+                modals.forEach(modal => {
+                    const modalId = modal.id;
+                    if (modalId.startsWith('confirm-dialog-')) {
+                        this.hideConfirmDialog(modalId, false);
+                    } else {
+                        this.hideModal(modalId);
+                    }
+                });
+            }
+        });
+
+        // Enhanced keyboard navigation for interactive elements
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.classList.contains('card-hover')) {
+                e.target.click();
+            }
+        });
+    }
+};
+
+// Initialize UI utilities when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    window.UIUtils.initialize();
+});
+
+// Global shortcuts for backward compatibility
+window.showMessage = window.UIUtils.showMessage.bind(window.UIUtils);
+window.hideLoading = window.UIUtils.hideLoading.bind(window.UIUtils);
+window.showLoading = window.UIUtils.showLoading.bind(window.UIUtils);
+
+// Export for module usage (if needed)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.UIUtils;
+}
+</script>
+</body>
+</html>
