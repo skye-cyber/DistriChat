@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow rounded-lg" data-aos="fade-up">
+      <!-- Profile Header -->
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-bold text-gray-900">Your Profile</h1>
+          <a
+            href="{% url 'users:update_profile' %}"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300"
+          >
+            Edit Profile
+          </a>
+        </div>
+      </div>
+
+      <!-- Profile Content -->
+      <div class="px-6 py-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Avatar and Basic Info -->
+          <div class="md:col-span-1">
+            <div class="text-center">
+              {% if user.avatar %}
+              <img
+                src="{{ user.avatar.url }}"
+                alt="{{ user.username }}"
+                class="w-32 h-32 rounded-full mx-auto mb-4"
+              />
+              {% else %}
+              <div
+                class="w-32 h-32 bg-{{ user.color }}-500 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-4xl font-bold"
+              >
+                {{ user.username|first|upper }}
+              </div>
+              {% endif %}
+              <h2 class="text-xl font-semibold text-gray-900">
+                {{ user.username }}
+              </h2>
+              <p class="text-gray-600">{{ user.email }}</p>
+              <div
+                class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if user.is_online %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}"
+              >
+                <span
+                  class="w-2 h-2 rounded-full {% if user.is_online %}bg-green-500{% else %}bg-gray-500{% endif %} mr-2"
+                ></span>
+                {% if user.is_online %}Online{% else %}Offline{% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Details -->
+          <div class="md:col-span-2">
+            <div class="space-y-6">
+              <!-- Bio -->
+              <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">About</h3>
+                {% if user.bio %}
+                <p class="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                  {{ user.bio }}
+                </p>
+                {% else %}
+                <p class="text-gray-500 italic">No bio provided.</p>
+                {% endif %}
+              </div>
+
+              <!-- Stats -->
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-blue-50 rounded-lg p-4 text-center">
+                  <div class="text-2xl font-bold text-blue-600">
+                    {{ user.total_messages_sent }}
+                  </div>
+                  <div class="text-sm text-blue-500">Messages Sent</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                  <div class="text-2xl font-bold text-green-600">
+                    {{ user.rooms_joined }}
+                  </div>
+                  <div class="text-sm text-green-500">Rooms Joined</div>
+                </div>
+              </div>
+
+              <!-- Preferences -->
+              <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                  Preferences
+                </h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div class="flex items-center">
+                    <span class="font-medium text-gray-700">Color Scheme:</span>
+                    <span class="ml-2 text-gray-600 capitalize"
+                      >{{ user.color_scheme }}</span
+                    >
+                  </div>
+                  <div class="flex items-center">
+                    <span class="font-medium text-gray-700"
+                      >Notifications:</span
+                    >
+                    <span class="ml-2 font-semibold {% if user.notification_enabled %} text-blue-500 {% else%}text-gray-600{% endif %}">
+                      {% if user.notification_enabled %}Enabled{% else%}Disabled{% endif %}
+                    </span>
+                  </div>
+                  <div class="flex items-center">
+                    <span class="font-medium text-gray-700">Sounds:</span>
+                    <span class="ml-2 font-bold {% if user.sound_enabled %}text-blue-500{% else %}text-gray-600{% endif %}">
+                      {% if user.sound_enabled %} Enabled {% else %} Disabled {% endif %}
+                    </span>
+                  </div>
+                  <div class="flex items-center">
+                    <span class="font-medium text-gray-700">Last Seen:</span>
+                    <span class="ml-2 text-gray-600"
+                      >{{ user.last_seen|timesince }} ago</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div
+      class="mt-8 bg-white shadow rounded-lg"
+      data-aos="fade-up"
+      data-aos-delay="200"
+    >
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900">Recent Activity</h2>
+      </div>
+      <div class="px-6 py-4">
+        {% if activities %}
+        <div class="space-y-4">
+          {% for activity in activities %}
+          <div
+            class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+          >
+            <div class="flex items-center space-x-3">
+              <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">
+                  {{ activity.get_activity_type_display }}
+                </p>
+                <p class="text-sm text-gray-500">{{ activity.description }}</p>
+              </div>
+            </div>
+            <span class="text-sm text-gray-500"
+              >{{ activity.created_at|timesince }} ago</span
+            >
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-4">No recent activity.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

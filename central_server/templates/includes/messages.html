@@ -1,0 +1,159 @@
+{% if messages %}
+<div id="message-container" class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+    {% for message in messages %}
+    <div class="message-alert {% if message.tags %}{{ message.tags }}{% endif %}
+                transform transition-all duration-300 ease-in-out
+                opacity-0 translate-x-full"
+         data-message-id="{{ forloop.counter }}"
+         data-auto-dismiss="true">
+
+        <div class="{% if message.tags == 'error' %}bg-red-50 border-red-200 text-red-800
+                   {% elif message.tags == 'warning' %}bg-yellow-50 border-yellow-200 text-yellow-800
+                   {% elif message.tags == 'success' %}bg-green-50 border-green-200 text-green-800
+                   {% elif message.tags == 'info' %}bg-blue-50 border-blue-200 text-blue-800
+                   {% else %}bg-gray-50 border-gray-200 text-gray-800{% endif %}
+                   border rounded-lg shadow-lg p-4 relative">
+
+            <!-- Message Content -->
+            <div class="flex items-start">
+                <!-- Icon -->
+                <div class="flex-shrink-0">
+                    {% if message.tags == 'error' %}
+                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    {% elif message.tags == 'warning' %}
+                    <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    {% elif message.tags == 'success' %}
+                    <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {% elif message.tags == 'info' %}
+                    <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    {% else %}
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    {% endif %}
+                </div>
+
+                <!-- Message Text -->
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-medium">
+                        {{ message }}
+                    </p>
+                </div>
+
+                <!-- Close Button -->
+                <button type="button"
+                        class="ml-4 flex-shrink-0 inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition ease-in-out duration-150"
+                        onclick="window.dismissMessage(this)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-current opacity-20 rounded-b-lg">
+                <div class="h-full {% if message.tags == 'error' %}bg-red-400
+                              {% elif message.tags == 'warning' %}bg-yellow-400
+                              {% elif message.tags == 'success' %}bg-green-400
+                              {% elif message.tags == 'info' %}bg-blue-400
+                              {% else %}bg-gray-400{% endif %}
+                              progress-bar rounded-b-lg transition-all duration-4000 ease-linear"></div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Message handling functionality - defined in global scope
+window.initializeMessages = function() {
+    const messageAlerts = document.querySelectorAll('.message-alert');
+
+    messageAlerts.forEach((alert, index) => {
+        // Animate message in
+        setTimeout(() => {
+            alert.classList.remove('opacity-0', 'translate-x-full');
+            alert.classList.add('opacity-100', 'translate-x-0');
+        }, 100 * index);
+
+        // Auto-dismiss if enabled
+        if (alert.dataset.autoDismiss === 'true') {
+            setTimeout(() => {
+                window.dismissMessageElement(alert);
+            }, 5000); // 5 seconds total (includes animation time)
+        }
+    });
+};
+
+window.dismissMessage = function(button) {
+    const alert = button.closest('.message-alert');
+    window.dismissMessageElement(alert);
+};
+
+window.dismissMessageElement = function(alert) {
+    if (!alert) return;
+
+    // Stop any auto-dismiss timers
+    if (alert.dismissTimer) {
+        clearTimeout(alert.dismissTimer);
+    }
+
+    // Animate out
+    alert.classList.remove('opacity-100', 'translate-x-0');
+    alert.classList.add('opacity-0', 'translate-x-full');
+
+    // Remove from DOM after animation
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+
+            // Remove container if no messages left
+            const container = document.getElementById('message-container');
+            if (container && container.children.length === 0) {
+                container.remove();
+            }
+        }
+    }, 300);
+};
+
+// Initialize messages when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    window.initializeMessages();
+});
+
+// Add manual dismiss with escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const alerts = document.querySelectorAll('.message-alert');
+        alerts.forEach(alert => window.dismissMessageElement(alert));
+    }
+});
+
+// Optional: Add swipe to dismiss on mobile
+let touchStartX = 0;
+document.addEventListener('touchstart', function(e) {
+    if (e.target.closest('.message-alert')) {
+        touchStartX = e.changedTouches[0].screenX;
+    }
+});
+
+document.addEventListener('touchend', function(e) {
+    if (e.target.closest('.message-alert')) {
+        const touchEndX = e.changedTouches[0].screenX;
+        const diff = touchEndX - touchStartX;
+
+        if (diff > 50) { // Swipe right to dismiss
+            window.dismissMessageElement(e.target.closest('.message-alert'));
+        }
+    }
+});
+</script>
+{% endif %}

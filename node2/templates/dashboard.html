@@ -1,0 +1,258 @@
+{% extends 'base.html' %} {% block content %}
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <h1 class="text-3xl font-bold text-gray-900" data-aos="fade-up">
+        Dashboard
+      </h1>
+      <p class="mt-2 text-gray-600" data-aos="fade-up" data-aos-delay="200">
+        Manage your chat rooms and nodes
+      </p>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chat Rooms Section -->
+        <div class="lg:col-span-2" data-aos="fade-up">
+          <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+              <div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900">
+                  Chat Rooms
+                </h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                  Join or create chat rooms
+                </p>
+              </div>
+              <button
+                onclick="openCreateRoomModal()"
+                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300"
+              >
+                Create Room
+              </button>
+            </div>
+            <div class="border-t border-gray-200">
+              <div class="bg-gray-50 px-4 py-5 sm:p-6">
+                {% if chat_rooms %}
+                <div class="space-y-4">
+                  {% for room in chat_rooms %}
+                  <div
+                    class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-300"
+                  >
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <h4 class="text-lg font-semibold text-gray-800">
+                          {{ room.name }}
+                        </h4>
+                        <p class="text-sm text-gray-600">
+                          {{ room.description }}
+                        </p>
+                        <div
+                          class="flex items-center mt-2 space-x-4 text-sm text-gray-500"
+                        >
+                          <span>Members: {{ room.member_count }}</span>
+                          <span>Node: {{ room.node.name }}</span>
+                        </div>
+                      </div>
+                      <a
+                        href="{% url 'chat_room' room.id %}"
+                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300"
+                      >
+                        Join Room
+                      </a>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                  <svg
+                    class="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900">
+                    No chat rooms
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-500">
+                    Get started by creating a new chat room.
+                  </p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nodes Status Section -->
+        <div data-aos="fade-up" data-aos-delay="200">
+          <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">
+                System Nodes
+              </h3>
+              <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Distributed node status
+              </p>
+            </div>
+            <div class="border-t border-gray-200">
+              <div class="bg-gray-50 px-4 py-5 sm:p-6">
+                <div class="space-y-4">
+                  {% for node in nodes %}
+                  <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                          <div
+                            class="w-3 h-3 rounded-full {% if node.status == 'online' %}bg-green-500{% else %}bg-red-500{% endif %}"
+                          ></div>
+                        </div>
+                        <div class="ml-3">
+                          <p class="text-sm font-medium text-gray-900">
+                            {{ node.name }}
+                          </p>
+                          <p class="text-sm text-gray-500">{{ node.url }}</p>
+                        </div>
+                      </div>
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if node.status == 'online' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
+                      >
+                        {{ node.status|title }}
+                      </span>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500">
+                      Rooms: {{ node.room_count }} | Load: {{ node.load }}%
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Stats -->
+          <div
+            class="mt-6 bg-white overflow-hidden shadow rounded-lg"
+            data-aos="fade-up"
+            data-aos-delay="400"
+          >
+            <div class="px-4 py-5 sm:p-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">
+                Your Activity
+              </h3>
+              <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <div class="text-2xl font-bold text-blue-600">
+                    {{ user_room_count }}
+                  </div>
+                  <div class="text-sm text-blue-500">Rooms Joined</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                  <div class="text-2xl font-bold text-green-600">
+                    {{ user_message_count }}
+                  </div>
+                  <div class="text-sm text-green-500">Messages Sent</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Room Modal -->
+<div
+  id="createRoomModal"
+  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden"
+>
+  <div
+    class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+  >
+    <div class="mt-3">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">
+        Create New Chat Room
+      </h3>
+      <form method="POST" action="{% url 'chat:create_room' %}">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label
+            class="block text-gray-700 text-sm font-bold mb-2"
+            for="room_name"
+          >
+            Room Name
+          </label>
+          <input
+            type="text"
+            id="room_name"
+            name="room_name"
+            required
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div class="mb-4">
+          <label
+            class="block text-gray-700 text-sm font-bold mb-2"
+            for="room_description"
+          >
+            Description
+          </label>
+          <textarea
+            id="room_description"
+            name="room_description"
+            rows="3"
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          ></textarea>
+        </div>
+        <div class="flex items-center justify-between">
+          <button
+            type="button"
+            onclick="closeCreateRoomModal()"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Create Room
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script>
+  function openCreateRoomModal() {
+    document.getElementById("createRoomModal").classList.remove("hidden");
+  }
+
+  function closeCreateRoomModal() {
+    document.getElementById("createRoomModal").classList.add("hidden");
+  }
+
+  // Close modal when clicking outside
+  window.onclick = function (event) {
+    const modal = document.getElementById("createRoomModal");
+    if (event.target === modal) {
+      closeCreateRoomModal();
+    }
+  };
+</script>
+{% endblock %}
