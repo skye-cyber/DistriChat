@@ -4,8 +4,11 @@
     "private": true,
     "description": "Distributed system  application.",
     "scripts": {
-        "start": "python manage.py runserver 0.0.0.0:8001",
-        "tailwindcss": "tailwindcss -i ./static/css/config.css -o ./static/css/styles.css --watch --minify"
+        "start:node1": "python node1/manage.py runserver 0.0.0.0:8002",
+        "start:node2": "python node2/manage.py runserver 0.0.0.0:8003",
+        "start:nodes": "python nodes_initializer.py runserver",
+        "start:main": "python central_server/manage.py runserver 0.0.0.0:8001",
+        "watch": "tailwindcss -i ./central_server/static/css/config.css -o ./central_server/static/css/styles.css --watch --minify"
     },
     "browserslist": {
         "production": [

@@ -259,7 +259,7 @@ flowchart TD
 ## Technology Stack
 
 ### Backend
-- **Django 4.2+**: Web framework
+- **Django 5.1+**: Web framework
 - **Django Channels**: WebSocket support for real-time features
 - **Redis**: Channel layer for distributed WebSocket communication
 - **SQLite/PostgreSQL**: Database (configurable)
