@@ -1,6 +1,4 @@
-{% extends 'base.html' %}
-{% load filters %}
-{% block content %}
+{% extends 'base.html' %} {% load filters %} {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Header Section -->
@@ -14,27 +12,67 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="mb-8 flex flex-wrap gap-4 justify-center" data-aos="fade-up" data-aos-delay="200">
-      <button onclick="openCreateNodeModal()"
-              class="btn-primary text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+    <div
+      class="mb-8 flex flex-wrap gap-4 justify-center"
+      data-aos="fade-up"
+      data-aos-delay="200"
+    >
+      <button
+        onclick="openCreateNodeModal()"
+        class="btn-primary text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
         </svg>
         <span>Add New Node</span>
       </button>
 
-      <button onclick="refreshNodeStatus()"
-              class="bg-white text-blue-600 px-6 py-3 rounded-xl border border-blue-200 flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform hover:bg-blue-50">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      <button
+        onclick="refreshNodeStatus()"
+        class="bg-white text-blue-600 px-6 py-3 rounded-xl border border-blue-200 flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform hover:bg-blue-50"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
         </svg>
         <span>Refresh Status</span>
       </button>
 
-      <button onclick="openLoadBalanceModal()"
-              class="bg-green-600 text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform hover:bg-green-700">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      <button
+        onclick="openLoadBalanceModal()"
+        class="bg-green-600 text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform hover:bg-green-700"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
         </svg>
         <span>Load Balance</span>
       </button>
@@ -42,16 +80,32 @@
 
     <!-- Stats Overview -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-aos="fade-up">
-      <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div
+        class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+      >
         <div class="p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Total Nodes</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900">{{ nodes|length }}</p>
+              <p class="mt-2 text-3xl font-bold text-gray-900">
+                {{ nodes|length }}
+              </p>
             </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+            <div
+              class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center"
+            >
+              <svg
+                class="w-6 h-6 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                />
               </svg>
             </div>
           </div>
@@ -62,16 +116,32 @@
         </div>
       </div>
 
-      <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div
+        class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+      >
         <div class="p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Total Rooms</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900">{{ total_rooms }}</p>
+              <p class="mt-2 text-3xl font-bold text-gray-900">
+                {{ total_rooms }}
+              </p>
             </div>
-            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            <div
+              class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center"
+            >
+              <svg
+                class="w-6 h-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
               </svg>
             </div>
           </div>
@@ -81,39 +151,65 @@
         </div>
       </div>
 
-      <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div
+        class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+      >
         <div class="p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Total Messages</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900">{{ total_messages }}</p>
+              <p class="mt-2 text-3xl font-bold text-gray-900">
+                {{ total_messages }}
+              </p>
             </div>
-            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+            <div
+              class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center"
+            >
+              <svg
+                class="w-6 h-6 text-purple-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
               </svg>
             </div>
           </div>
-          <div class="mt-4 text-sm text-gray-500">
-            Real-time communication
-          </div>
+          <div class="mt-4 text-sm text-gray-500">Real-time communication</div>
         </div>
       </div>
 
-      <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div
+        class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+      >
         <div class="p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Total Users</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900">{{ total_users }}</p>
+              <p class="mt-2 text-3xl font-bold text-gray-900">
+                {{ total_users }}
+              </p>
             </div>
-            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-orange-600 fill-orange-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M320 80C377.4 80 424 126.6 424 184C424 241.4 377.4 288 320 288C262.6 288 216 241.4 216 184C216 126.6 262.6 80 320 80zM96 152C135.8 152 168 184.2 168 224C168 263.8 135.8 296 96 296C56.2 296 24 263.8 24 224C24 184.2 56.2 152 96 152zM0 480C0 409.3 57.3 352 128 352C140.8 352 153.2 353.9 164.9 357.4C132 394.2 112 442.8 112 496L112 512C112 523.4 114.4 534.2 118.7 544L32 544C14.3 544 0 529.7 0 512L0 480zM521.3 544C525.6 534.2 528 523.4 528 512L528 496C528 442.8 508 394.2 475.1 357.4C486.8 353.9 499.2 352 512 352C582.7 352 640 409.3 640 480L640 512C640 529.7 625.7 544 608 544L521.3 544zM472 224C472 184.2 504.2 152 544 152C583.8 152 616 184.2 616 224C616 263.8 583.8 296 544 296C504.2 296 472 263.8 472 224zM160 496C160 407.6 231.6 336 320 336C408.4 336 480 407.6 480 496L480 512C480 529.7 465.7 544 448 544L192 544C174.3 544 160 529.7 160 512L160 496z"/></svg>
+            <div
+              class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center"
+            >
+              <svg
+                class="w-6 h-6 text-orange-600 fill-orange-600"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 640 640"
+              >
+                <path
+                  d="M320 80C377.4 80 424 126.6 424 184C424 241.4 377.4 288 320 288C262.6 288 216 241.4 216 184C216 126.6 262.6 80 320 80zM96 152C135.8 152 168 184.2 168 224C168 263.8 135.8 296 96 296C56.2 296 24 263.8 24 224C24 184.2 56.2 152 96 152zM0 480C0 409.3 57.3 352 128 352C140.8 352 153.2 353.9 164.9 357.4C132 394.2 112 442.8 112 496L112 512C112 523.4 114.4 534.2 118.7 544L32 544C14.3 544 0 529.7 0 512L0 480zM521.3 544C525.6 534.2 528 523.4 528 512L528 496C528 442.8 508 394.2 475.1 357.4C486.8 353.9 499.2 352 512 352C582.7 352 640 409.3 640 480L640 512C640 529.7 625.7 544 608 544L521.3 544zM472 224C472 184.2 504.2 152 544 152C583.8 152 616 184.2 616 224C616 263.8 583.8 296 544 296C504.2 296 472 263.8 472 224zM160 496C160 407.6 231.6 336 320 336C408.4 336 480 407.6 480 496L480 512C480 529.7 465.7 544 448 544L192 544C174.3 544 160 529.7 160 512L160 496z"
+                />
+              </svg>
             </div>
           </div>
-          <div class="mt-4 text-sm text-gray-500">
-            Active system users
-          </div>
+          <div class="mt-4 text-sm text-gray-500">Active system users</div>
         </div>
       </div>
     </div>
@@ -121,16 +217,27 @@
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       <!-- Nodes List -->
       <div class="xl:col-span-2">
-        <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden" data-aos="fade-right">
+        <div
+          class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+          data-aos="fade-right"
+        >
           <div class="px-6 py-5 border-b border-gray-100">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-bold text-gray-900">Distributed Nodes</h3>
-                <p class="text-sm text-gray-500 mt-1">All registered nodes in the system</p>
+                <h3 class="text-xl font-bold text-gray-900">
+                  Distributed Nodes
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                  All registered nodes in the system
+                </p>
               </div>
               <div class="flex items-center space-x-2">
-                <span class="text-sm text-gray-500">{{ nodes|length }} nodes</span>
-                <div class="w-2 h-2 bg-green-400 rounded-full pulse-animation"></div>
+                <span class="text-sm text-gray-500"
+                  >{{ nodes|length }} nodes</span
+                >
+                <div
+                  class="w-2 h-2 bg-green-400 rounded-full pulse-animation"
+                ></div>
               </div>
             </div>
           </div>
@@ -138,36 +245,68 @@
             {% if nodes %}
             <div class="space-y-4">
               {% for node in nodes %}
-              <div class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 border border-gray-200 card-hover">
+              <div
+                class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 border border-gray-200 card-hover"
+              >
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-4">
                     <!-- Status Indicator -->
                     <div class="relative">
-                      <div class="w-4 h-4 rounded-full {% if node.status == 'online' %}bg-green-500{% else %}bg-red-500{% endif %} pulse-animation"></div>
+                      <div
+                        class="w-4 h-4 rounded-full {% if node.status == 'online' %}bg-green-500{% else %}bg-red-500{% endif %} pulse-animation"
+                      ></div>
                       {% if node.status == 'online' %}
-                      <div class="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
+                      <div
+                        class="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"
+                      ></div>
                       {% endif %}
                     </div>
 
                     <!-- Node Info -->
                     <div class="flex-1">
                       <div class="flex items-center space-x-3">
-                        <h4 class="text-lg font-semibold text-gray-900">{{ node.name }}</h4>
-                        <span class="text-xs px-2 py-1 rounded-full {% if node.load < 50 %}bg-green-100 text-green-800{% elif node.load < 80 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        <h4 class="text-lg font-semibold text-gray-900">
+                          {{ node.name }}
+                        </h4>
+                        <span
+                          class="text-xs px-2 py-1 rounded-full {% if node.load < 50 %}bg-green-100 text-green-800{% elif node.load < 80 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}"
+                        >
                           {{ node.load|floatformat:1 }}% load
                         </span>
                       </div>
                       <p class="text-sm text-gray-600 mt-1">{{ node.url }}</p>
-                      <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                      <div
+                        class="flex items-center space-x-4 mt-2 text-sm text-gray-500"
+                      >
                         <span class="flex items-center space-x-1">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            />
                           </svg>
                           <span>{{ node.room_count }} rooms</span>
                         </span>
                         <span class="flex items-center space-x-1">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M13 10V3L4 14h7v7l9-11h-7z"
+                            />
                           </svg>
                           <span>{{ node.heartbeat_count }} heartbeats</span>
                         </span>
@@ -177,16 +316,40 @@
 
                   <!-- Action Buttons -->
                   <div class="flex items-center space-x-2">
-                    <button onclick="editNode('{{ node.id }}')"
-                            class="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    <button
+                      onclick="editNode('{{ node.id }}')"
+                      class="w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
                       </svg>
                     </button>
-                    <button onclick="deleteNode('{{ node.id }}', '{{ node.name }}')"
-                            class="w-8 h-8 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    <button
+                      onclick="deleteNode('{{ node.id }}', '{{ node.name }}')"
+                      class="w-8 h-8 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -194,30 +357,59 @@
 
                 <!-- Additional Info -->
                 {% if node.last_heartbeat %}
-                <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
-                  <span>Last heartbeat: {{ node.last_heartbeat|timesince }} ago</span>
-                  <span>Capacity: {{ node.current_rooms }}/{{ node.max_rooms }}</span>
+                <div
+                  class="mt-3 flex items-center justify-between text-xs text-gray-500"
+                >
+                  <span
+                    >Last heartbeat: {{ node.last_heartbeat|timesince }}
+                    ago</span
+                  >
+                  <span
+                    >Capacity: {{ node.current_rooms }}/{{ node.max_rooms
+                    }}</span
+                  >
                 </div>
                 {% endif %}
 
                 <!-- Load Bar -->
                 <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
-                  <div class="h-2 rounded-full {% if node.load < 50 %}bg-green-500{% elif node.load < 80 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
-                       style="width: {{ node.load }}%"></div>
+                  <div
+                    class="h-2 rounded-full {% if node.load < 50 %}bg-green-500{% elif node.load < 80 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                    style="width: {{ node.load }}%"
+                  ></div>
                 </div>
               </div>
               {% endfor %}
             </div>
             {% else %}
             <div class="text-center py-12">
-              <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+              <div
+                class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <svg
+                  class="w-12 h-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                  />
                 </svg>
               </div>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">No nodes registered</h3>
-              <p class="text-gray-500 mb-4">Get started by adding your first node</p>
-              <button onclick="openCreateNodeModal()" class="btn-primary px-6 py-2 rounded-lg">
+              <h3 class="text-lg font-medium text-gray-900 mb-2">
+                No nodes registered
+              </h3>
+              <p class="text-gray-500 mb-4">
+                Get started by adding your first node
+              </p>
+              <button
+                onclick="openCreateNodeModal()"
+                class="btn-primary px-6 py-2 rounded-lg"
+              >
                 Add First Node
               </button>
             </div>
@@ -229,14 +421,23 @@
       <!-- Sidebar Section -->
       <div class="space-y-8">
         <!-- Pending Registrations -->
-        <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden" data-aos="fade-left">
+        <div
+          class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+          data-aos="fade-left"
+        >
           <div class="px-6 py-5 border-b border-gray-100">
             <div class="flex items-center justify-between">
               <div>
-                <h3 class="text-xl font-bold text-gray-900">Pending Registrations</h3>
-                <p class="text-sm text-gray-500 mt-1">Nodes waiting for approval</p>
+                <h3 class="text-xl font-bold text-gray-900">
+                  Pending Registrations
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                  Nodes waiting for approval
+                </p>
               </div>
-              <span class="bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full">
+              <span
+                class="bg-yellow-100 text-yellow-800 text-sm px-3 py-1 rounded-full"
+              >
                 {{ pending_registrations|length }} pending
               </span>
             </div>
@@ -245,30 +446,64 @@
             {% if pending_registrations %}
             <div class="space-y-4">
               {% for reg in pending_registrations %}
-              <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 card-hover">
+              <div
+                class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 card-hover"
+              >
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
-                    <h4 class="font-semibold text-gray-900">{{ reg.node_name }}</h4>
+                    <h4 class="font-semibold text-gray-900">
+                      {{ reg.node_name }}
+                    </h4>
                     <p class="text-sm text-gray-600 mt-1">{{ reg.node_url }}</p>
-                    <p class="text-sm text-gray-500 mt-2">{{ reg.description|default:"No description provided" }}</p>
+                    <p class="text-sm text-gray-500 mt-2">
+                      {{ reg.description|default:"No description provided" }}
+                    </p>
                     <div class="flex items-center justify-between mt-3">
-                      <span class="text-sm text-gray-500">Capacity: {{ reg.max_rooms_capacity }} rooms</span>
-                      <span class="text-xs text-gray-400">{{ reg.created_at|timesince }} ago</span>
+                      <span class="text-sm text-gray-500"
+                        >Capacity: {{ reg.max_rooms_capacity }} rooms</span
+                      >
+                      <span class="text-xs text-gray-400"
+                        >{{ reg.created_at|timesince }} ago</span
+                      >
                     </div>
                   </div>
                 </div>
                 <div class="flex items-center space-x-2 mt-3">
-                  <button onclick="approveNode('{{ reg.id }}')"
-                          class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  <button
+                    onclick="approveNode('{{ reg.id }}')"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                     <span>Approve</span>
                   </button>
-                  <button onclick="rejectNode('{{ reg.id }}')"
-                          class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  <button
+                    onclick="rejectNode('{{ reg.id }}')"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2"
+                  >
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                     <span>Reject</span>
                   </button>
@@ -278,9 +513,21 @@
             </div>
             {% else %}
             <div class="text-center py-8">
-              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <div
+                class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <svg
+                  class="w-8 h-8 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <p class="text-gray-500">No pending registrations</p>
@@ -290,25 +537,40 @@
         </div>
 
         <!-- System Health -->
-        <div class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden" data-aos="fade-left" data-aos-delay="200">
+        <div
+          class="bg-white card-hover rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+          data-aos="fade-left"
+          data-aos-delay="200"
+        >
           <div class="px-6 py-5 border-b border-gray-100">
             <h3 class="text-xl font-bold text-gray-900">System Health</h3>
           </div>
           <div class="p-6">
             <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-700">Node Availability</span>
+                <span class="text-sm font-medium text-gray-700"
+                  >Node Availability</span
+                >
                 <span class="text-sm font-semibold text-green-600">100%</span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-700">Average Load</span>
+                <span class="text-sm font-medium text-gray-700"
+                  >Average Load</span
+                >
                 <span class="text-sm font-semibold text-blue-600">
-                  {% if nodes %}{% with total_load=0 %}{% for node in nodes %}{{ total_load|add:node.load }}{% endfor %}{{ total_load|div:total_nodes|floatformat:1 }}%{% endwith %}{% else %}0%{% endif %}
+                  {% if nodes %}{% with total_load=0 %}{% for node in nodes %}{{
+                  total_load|add:node.load }}{% endfor %}{{
+                  total_load|div:total_nodes|floatformat:1 }}%{% endwith %}{%
+                  else %}0%{% endif %}
                 </span>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-700">Response Time</span>
-                <span class="text-sm font-semibold text-green-600">&lt;50ms</span>
+                <span class="text-sm font-medium text-gray-700"
+                  >Response Time</span
+                >
+                <span class="text-sm font-semibold text-green-600"
+                  >&lt;50ms</span
+                >
               </div>
             </div>
           </div>
@@ -319,8 +581,14 @@
 </div>
 
 <!-- Create Node Modal -->
-<div id="createNodeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="createNodeModalContent">
+<div
+  id="createNodeModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0"
+    id="createNodeModalContent"
+  >
     <div class="p-6 border-b border-gray-200">
       <h3 class="text-xl font-bold text-gray-900">Add New Node</h3>
       <p class="text-sm text-gray-500 mt-1">Register a new distributed node</p>
@@ -328,28 +596,53 @@
     <form id="createNodeForm" class="p-6 space-y-4">
       {% csrf_token %}
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Node Name</label>
-        <input type="text" name="name" required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >Node Name</label
+        >
+        <input
+          type="text"
+          name="name"
+          required
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        />
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Node URL</label>
-        <input type="url" name="url" required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-               placeholder="https://node.example.com">
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >Node URL</label
+        >
+        <input
+          type="url"
+          name="url"
+          required
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+          placeholder="https://node.example.com"
+        />
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Max Rooms</label>
-        <input type="number" name="max_rooms" value="50" min="1" max="1000"
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+        <label class="block text-sm font-medium text-gray-700 mb-2"
+          >Max Rooms</label
+        >
+        <input
+          type="number"
+          name="max_rooms"
+          value="50"
+          min="1"
+          max="1000"
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        />
       </div>
       <div class="flex space-x-3 pt-4">
-        <button type="button" onclick="closeCreateNodeModal()"
-                class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+        <button
+          type="button"
+          onclick="closeCreateNodeModal()"
+          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+        >
           Cancel
         </button>
-        <button type="submit"
-                class="flex-1 btn-primary px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+        <button
+          type="submit"
+          class="flex-1 btn-primary px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+        >
           Create Node
         </button>
       </div>
@@ -358,224 +651,245 @@
 </div>
 
 <!-- Delete Node Confirmation Modal -->
-<div id="deleteNodeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="deleteNodeModalContent">
+<div
+  id="deleteNodeModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0"
+    id="deleteNodeModalContent"
+  >
     <div class="p-6 border-b border-gray-200">
       <h3 class="text-xl font-bold text-gray-900">Delete Node</h3>
       <p class="text-sm text-gray-500 mt-1">This action cannot be undone</p>
     </div>
     <div class="p-6">
-      <p class="text-gray-700 mb-4">Are you sure you want to delete node "<span id="deleteNodeName" class="font-semibold"></span>"?</p>
+      <p class="text-gray-700 mb-4">
+        Are you sure you want to delete node "<span
+          id="deleteNodeName"
+          class="font-semibold"
+        ></span
+        >"?
+      </p>
       <div class="flex space-x-3">
-        <button onclick="closeDeleteNodeModal()"
-                class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+        <button
+          onclick="closeDeleteNodeModal()"
+          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+        >
           Cancel
         </button>
-        <button id="confirmDeleteNode"
-                class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+        <button
+          id="confirmDeleteNode"
+          class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+        >
           Delete Node
         </button>
       </div>
     </div>
   </div>
 </div>
-{% block footer %}
-    {# disable footer #}
-{% endblock %}
+{% block footer %} {# disable footer #} {% endblock %}
 <script>
-// Modal Management
-function openCreateNodeModal() {
-  const modal = document.getElementById('createNodeModal');
-  const content = document.getElementById('createNodeModalContent');
-  modal.classList.remove('hidden');
-  setTimeout(() => {
-    content.classList.remove('scale-95', 'opacity-0');
-    content.classList.add('scale-100', 'opacity-100');
-  }, 10);
-}
+  // Modal Management
+  function openCreateNodeModal() {
+    const modal = document.getElementById("createNodeModal");
+    const content = document.getElementById("createNodeModalContent");
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+      content.classList.remove("scale-95", "opacity-0");
+      content.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
 
-function closeCreateNodeModal() {
-  const modal = document.getElementById('createNodeModal');
-  const content = document.getElementById('createNodeModalContent');
-  content.classList.remove('scale-100', 'opacity-100');
-  content.classList.add('scale-95', 'opacity-0');
-  setTimeout(() => modal.classList.add('hidden'), 300);
-}
+  function closeCreateNodeModal() {
+    const modal = document.getElementById("createNodeModal");
+    const content = document.getElementById("createNodeModalContent");
+    content.classList.remove("scale-100", "opacity-100");
+    content.classList.add("scale-95", "opacity-0");
+    setTimeout(() => modal.classList.add("hidden"), 300);
+  }
 
-function openDeleteNodeModal() {
-  const modal = document.getElementById('deleteNodeModal');
-  const content = document.getElementById('deleteNodeModalContent');
-  modal.classList.remove('hidden');
-  setTimeout(() => {
-    content.classList.remove('scale-95', 'opacity-0');
-    content.classList.add('scale-100', 'opacity-100');
-  }, 10);
-}
+  function openDeleteNodeModal() {
+    const modal = document.getElementById("deleteNodeModal");
+    const content = document.getElementById("deleteNodeModalContent");
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+      content.classList.remove("scale-95", "opacity-0");
+      content.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
 
-function closeDeleteNodeModal() {
-  const modal = document.getElementById('deleteNodeModal');
-  const content = document.getElementById('deleteNodeModalContent');
-  content.classList.remove('scale-100', 'opacity-100');
-  content.classList.add('scale-95', 'opacity-0');
-  setTimeout(() => modal.classList.add('hidden'), 300);
-}
+  function closeDeleteNodeModal() {
+    const modal = document.getElementById("deleteNodeModal");
+    const content = document.getElementById("deleteNodeModalContent");
+    content.classList.remove("scale-100", "opacity-100");
+    content.classList.add("scale-95", "opacity-0");
+    setTimeout(() => modal.classList.add("hidden"), 300);
+  }
 
-// Node Management Functions
-async function approveNode(registrationId) {
-  const button = event.target;
-  const originalContent = window.showLoading(button);
+  // Node Management Functions
+  async function approveNode(registrationId) {
+    const button = event.target;
+    const originalContent = window.showLoading(button);
 
-  try {
-    const response = await fetch(`/nodes/approve/${registrationId}/`, {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": "{{ csrf_token }}",
-      },
-    });
+    try {
+      const response = await fetch(`/nodes/approve/${registrationId}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.status === "success") {
-      window.showMessage('Node approved successfully!', 'success');
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      window.showMessage('Error approving node: ' + data.error, 'error');
+      if (data.status === "success") {
+        window.showMessage("Node approved successfully!", "success");
+        setTimeout(() => location.reload(), 1000);
+      } else if (data.status === "warning") {
+        window.showMessage(data.message, "warning");
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        window.showMessage("Error approving node: " + data.error, "error");
+        window.hideLoading(button, originalContent);
+      }
+    } catch (error) {
+      window.showMessage("Error approving node: " + error, "error");
       window.hideLoading(button, originalContent);
     }
-  } catch (error) {
-    window.showMessage('Error approving node: ' + error, 'error');
-    window.hideLoading(button, originalContent);
   }
-}
 
-async function rejectNode(registrationId) {
-  if (!confirm('Are you sure you want to reject this node registration?')) return;
+  async function rejectNode(registrationId) {
+    if (!confirm("Are you sure you want to reject this node registration?"))
+      return;
 
-  const button = event.target;
-  const originalContent = window.showLoading(button);
+    const button = event.target;
+    const originalContent = window.showLoading(button);
 
-  try {
-    const response = await fetch(`/nodes/reject/${registrationId}/`, {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": "{{ csrf_token }}",
-      },
-    });
+    try {
+      const response = await fetch(`/nodes/reject/${registrationId}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.status === "success") {
-      window.showMessage('Node registration rejected', 'success');
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      window.showMessage('Error rejecting node: ' + data.error, 'error');
+      if (data.status === "success") {
+        window.showMessage("Node registration rejected", "success");
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        window.showMessage("Error rejecting node: " + data.error, "error");
+        window.hideLoading(button, originalContent);
+      }
+    } catch (error) {
+      window.showMessage("Error rejecting node: " + error, "error");
       window.hideLoading(button, originalContent);
     }
-  } catch (error) {
-    window.showMessage('Error rejecting node: ' + error, 'error');
-    window.hideLoading(button, originalContent);
   }
-}
 
-function deleteNode(nodeId, nodeName) {
-  document.getElementById('deleteNodeName').textContent = nodeName;
-  document.getElementById('confirmDeleteNode').onclick = () => confirmDeleteNode(nodeId);
-  openDeleteNodeModal();
-}
+  function deleteNode(nodeId, nodeName) {
+    document.getElementById("deleteNodeName").textContent = nodeName;
+    document.getElementById("confirmDeleteNode").onclick = () =>
+      confirmDeleteNode(nodeId);
+    openDeleteNodeModal();
+  }
 
-async function confirmDeleteNode(nodeId) {
-  const button = document.getElementById('confirmDeleteNode');
-  const originalContent = window.showLoading(button);
+  async function confirmDeleteNode(nodeId) {
+    const button = document.getElementById("confirmDeleteNode");
+    const originalContent = window.showLoading(button);
 
-  try {
-    const response = await fetch(`/nodes/delete/${nodeId}/`, {
-      method: "DELETE",
-      headers: {
-        "X-CSRFToken": "{{ csrf_token }}",
-      },
-    });
+    try {
+      const response = await fetch(`/nodes/delete/${nodeId}/`, {
+        method: "DELETE",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.status === "success") {
-      window.showMessage('Node deleted successfully!', 'success');
-      closeDeleteNodeModal();
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      window.showMessage('Error deleting node: ' + data.error, 'error');
+      if (data.status === "success") {
+        window.showMessage("Node deleted successfully!", "success");
+        closeDeleteNodeModal();
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        window.showMessage("Error deleting node: " + data.error, "error");
+        window.hideLoading(button, originalContent);
+      }
+    } catch (error) {
+      window.showMessage("Error deleting node: " + error, "error");
       window.hideLoading(button, originalContent);
     }
-  } catch (error) {
-    window.showMessage('Error deleting node: ' + error, 'error');
-    window.hideLoading(button, originalContent);
   }
-}
 
-function editNode(nodeId) {
-  // Implementation for editing nodes
-  window.showMessage('Edit functionality coming soon!', 'info');
-}
+  function editNode(nodeId) {
+    // Implementation for editing nodes
+    window.showMessage("Edit functionality coming soon!", "info");
+  }
 
-function refreshNodeStatus() {
-  const button = event.target;
-  const originalContent = window.showLoading(button);
+  function refreshNodeStatus() {
+    const button = event.target;
+    const originalContent = window.showLoading(button);
 
-  // Simulate refresh
-  setTimeout(() => {
-    window.hideLoading(button, originalContent);
-    window.showMessage('Node status refreshed!', 'success');
-    // In a real implementation, this would fetch updated data
-  }, 1000);
-}
+    // Simulate refresh
+    setTimeout(() => {
+      window.hideLoading(button, originalContent);
+      window.showMessage("Node status refreshed!", "success");
+      // In a real implementation, this would fetch updated data
+    }, 1000);
+  }
 
-function openLoadBalanceModal() {
-  window.showMessage('Load balancing configuration coming soon!', 'info');
-}
+  function openLoadBalanceModal() {
+    window.showMessage("Load balancing configuration coming soon!", "info");
+  }
 
-// Form Handling
-document.getElementById('createNodeForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const formData = new FormData(this);
-  const button = this.querySelector('button[type="submit"]');
-  const originalContent = window.showLoading(button);
+  // Form Handling
+  document
+    .getElementById("createNodeForm")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const button = this.querySelector('button[type="submit"]');
+      const originalContent = window.showLoading(button);
 
-  try {
-    const response = await fetch('/nodes/create/', {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": "{{ csrf_token }}",
-      },
-      body: formData,
+      try {
+        const response = await fetch("/nodes/create/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+          window.showMessage("Node created successfully!", "success");
+          closeCreateNodeModal();
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          window.showMessage("Error creating node: " + data.error, "error");
+          window.hideLoading(button, originalContent);
+        }
+      } catch (error) {
+        window.showMessage("Error creating node: " + error, "error");
+        window.hideLoading(button, originalContent);
+      }
     });
 
-    const data = await response.json();
+  // Close modals when clicking outside
+  document.addEventListener("click", function (e) {
+    if (e.target.id === "createNodeModal") closeCreateNodeModal();
+    if (e.target.id === "deleteNodeModal") closeDeleteNodeModal();
+  });
 
-    if (data.status === "success") {
-      window.showMessage('Node created successfully!', 'success');
+  // Close modals with Escape key
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
       closeCreateNodeModal();
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      window.showMessage('Error creating node: ' + data.error, 'error');
-      window.hideLoading(button, originalContent);
+      closeDeleteNodeModal();
     }
-  } catch (error) {
-    window.showMessage('Error creating node: ' + error, 'error');
-    window.hideLoading(button, originalContent);
-  }
-});
-
-// Close modals when clicking outside
-document.addEventListener('click', function(e) {
-  if (e.target.id === 'createNodeModal') closeCreateNodeModal();
-  if (e.target.id === 'deleteNodeModal') closeDeleteNodeModal();
-});
-
-// Close modals with Escape key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    closeCreateNodeModal();
-    closeDeleteNodeModal();
-  }
-});
+  });
 </script>
 {% endblock %}

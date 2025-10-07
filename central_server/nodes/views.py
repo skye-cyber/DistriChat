@@ -28,22 +28,46 @@ class NodeManager:
     @staticmethod
     def create_node(name, url, max_rooms=50, user=None):
         """Create a new node with validation."""
-        print(f"\033[1mCreating node..\033[0m {name}-{url}-{max_rooms}")
+        print(f"\033[1mCreating node..\033[0m {name}")
 
         try:
+            # Check for existing nodes first to avoid IntegrityError
+            existing_node = Node.objects.filter(Q(name=name) | Q(url=url)).first()
+            # DEBUG: Check current state
+            print("DEBUG: Checking existing nodes...")
+            existing_nodes = Node.objects.all()
+            print(f"DEBUG: Total nodes in DB: {existing_nodes.count()}")
+            for node in existing_nodes:
+                print(f"DEBUG: Existing node - Name: {node.name}, URL: {node.url}")
+            # Check for duplicates
+            name_exists = Node.objects.filter(name=name).exists()
+            url_exists = Node.objects.filter(url=url).exists()
+
+            print(f"DEBUG: Name '{name}' exists: {name_exists}")
+            print(f"DEBUG: URL '{url}' exists: {url_exists}")
+
+            if existing_node:
+                if existing_node.name == name:
+                    raise ValueError(f"Node with name '{name}' already exists")
+                if existing_node.url == url:
+                    raise ValueError(f"Node with URL '{url}' already exists")
+
+            print("DEBUG: Attempting to create node...")
+            # Now create the node
             with transaction.atomic():
-                node, created = Node.objects.get_or_create(
+                node = Node.objects.create(
                     name=name,
-                    defaults={
-                        "url": url,
-                        "max_rooms": max_rooms,
-                        "status": "offline",
-                    },
+                    url=url,
+                    max_rooms=max_rooms,
+                    status="offline",
                 )
 
-                if not created:
-                    raise ValueError("Node with this name already exists")
+                print(f"DEBUG: Node created with ID: {node.id}")
+                # Generate API key for the node
+                node.api_key = node.generate_api_key()
+                node.save()
 
+                print(f"DEBUG: API key generated: {node.api_key[:8]}...")
                 SystemLog.objects.create(
                     level="info",
                     category="node",
@@ -52,15 +76,35 @@ class NodeManager:
                     node=node,
                 )
 
-            print("\033[1mCreation \033[1;32msucceeded..\033[0m")
+            print("\033[1;32m✓ Node creation succeeded\033[0m")
             return node
 
         except IntegrityError as e:
-            logger.warn(f"Integrity violation: {e}")
-            print("\033[1;33mIntegrity exception:\033[0m", e)
-            q_node = Node.objects.filter(name=name)
-            return q_node.first() if q_node.exists() else None
-            # raise ValueError("Node with this name or URL already exists")
+            print(f"\033[1;31mIntegrityError: {e}\033[0m")
+            print(f"\033[1;31m✗ IntegrityError: {e}\033[0m")
+            print(f"DEBUG: IntegrityError details: {e.__class__.__name__}")
+            raise ValueError(f"Database constraint violation: {str(e)}")
+            # If we still get an IntegrityError, check what exists
+            existing = Node.objects.filter(Q(name=name) | Q(url=url)).first()
+            if existing:
+                if existing.name == name:
+                    raise ValueError(
+                        f"Node with name '{name}' already exists (race condition)"
+                    )
+                else:
+                    raise ValueError(
+                        f"Node with URL '{url}' already exists (race condition)"
+                    )
+            else:
+                raise ValueError("Unknown integrity error occurred")
+
+        except Exception as e:
+            print(f"\033[1;31m✗ Unexpected error: {e}\033[0m")
+            print(f"DEBUG: Error type: {e.__class__.__name__}")
+            import traceback
+
+            traceback.print_exc()
+            raise
 
     @staticmethod
     def delete_node(node_id, user=None):

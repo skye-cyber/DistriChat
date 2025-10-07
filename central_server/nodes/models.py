@@ -19,7 +19,7 @@ class Node(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
-    url = models.URLField(max_length=200, help_text="Node's base URL")
+    url = models.URLField(max_length=200, help_text="Node's base URL", unique=True)
     status = models.CharField(max_length=20, choices=NODE_STATUS, default="offline")
     load = models.FloatField(default=0.0, help_text="Current load percentage (0-100)")
     max_rooms = models.IntegerField(
@@ -39,6 +39,10 @@ class Node(models.Model):
     class Meta:
         db_table = "nodes"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["name"], name="unique_node_name"),
+            models.UniqueConstraint(fields=["url"], name="unique_node_url"),
+        ]
 
     def save(self, *args, **kwargs):
         """Generate API key if not set"""
@@ -54,8 +58,7 @@ class Node(models.Model):
         """Generate secure API key for node"""
         import secrets
 
-        self.api_key = secrets.token_urlsafe(32)
-        self.save()
+        return secrets.token_urlsafe(32)
 
     @property
     def is_online(self):

@@ -92,9 +92,7 @@ def create_room_view(request):
 @login_required
 def chat_room_view(request, room_id):
     """Chat room view with messages."""
-    room = get_object_or_404(
-        ChatRoom.objects.select_related("node").prefetch_related("members"), id=room_id
-    )
+    room = get_object_or_404(ChatRoom.objects.prefetch_related("members"), id=room_id)
 
     # Check if user is member (for private rooms)
     if (

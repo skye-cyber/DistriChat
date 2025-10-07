@@ -65,7 +65,7 @@ class CustomUser(AbstractUser):
 
     def to_sync_dict(self):
         return {
-            "user_id": self.id,
+            "user_id": str(self.id),  # ✅ Convert UUID to string
             "email": self.email,
             "is_online": self.is_online,
             "last_seen": self.last_seen.isoformat() if self.last_seen else None,
@@ -164,7 +164,7 @@ class UserProfile(models.Model):
 
     def to_sync_dict(self):
         return {
-            "user_id": self.user.id,
+            "user_id": str(self.user.id),
             "email": self.email,
             "is_online": self.is_online,
             "last_seen": self.last_seen.isoformat() if self.last_seen else None,

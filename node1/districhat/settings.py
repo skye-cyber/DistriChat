@@ -118,12 +118,25 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "node1_db.sqlite3",
+TESTING = False
+if TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "node1_db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "districhat_node1",
+            "USER": "districhat_user",
+            "PASSWORD": "districhat@PhantomJoker@15",
+            "HOST": "localhost",
+            "PORT": "3306",
+        }
+    }
 
 """
     DATABASES = {
@@ -171,7 +184,7 @@ USE_TZ = True
 
 # Login URLs
 LOGIN_REDIRECT_URL = "chat:dashboard"
-LOGIN_URL = "login"
+LOGIN_URL = "/accounts/login"
 LOGOUT_REDIRECT_URL = "index"
 
 # Static files (CSS, JavaScript, Images)

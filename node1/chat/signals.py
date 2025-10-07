@@ -103,7 +103,7 @@ class NodeSyncSignalHandler:
                 f"{self.central_server_url}/nodes/api/sync/receive/",
                 json=sync_data,
                 headers={
-                    "X-Node-API-Key": self.node_api_key,
+                    "X-Node-API-Key": str(self.node_api_key),
                     "Content-Type": "application/json",
                 },
                 timeout=10,

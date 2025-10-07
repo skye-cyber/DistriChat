@@ -99,13 +99,25 @@ CHANNEL_LAYERS = {
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "central_db.sqlite3",
+TESTING = False
+if TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "central_db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "districhat_central",
+            "USER": "districhat_user",
+            "PASSWORD": "districhat@PhantomJoker@15",
+            "HOST": "localhost",
+            "PORT": "3306",
+        }
+    }
 
 """
     DATABASES = {
