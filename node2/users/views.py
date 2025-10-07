@@ -63,6 +63,9 @@ def login_view(request):
                     ip_address=get_client_ip(request),
                 )
 
+                # Update lats seen
+                request.user.update_last_seen()
+
                 messages.success(request, f"Welcome back, {user.username}!")
                 return redirect("chat:dashboard")
     else:
@@ -76,7 +79,9 @@ def logout_view(request):
     """User logout view."""
     # Update user online status
     request.user.is_online = False
-    request.user.save()
+
+    # Update lats seen
+    request.user.update_last_seen()
 
     # Log user activity
     UserActivity.objects.create(

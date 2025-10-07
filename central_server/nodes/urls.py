@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_sync
 
 app_name = "nodes"
 
@@ -18,4 +18,16 @@ urlpatterns = [
     # API endpoints
     path("heartbeat/<uuid:node_id>/", views.node_heartbeat, name="node_heartbeat"),
     path("status/", views.node_status_api, name="node_status"),
+    # Sync API endpoints
+    path(
+        "api/sync/receive/", views_sync.SyncReceiverAPI.as_view(), name="sync_receive"
+    ),
+    # Manual sync endpoints (for backup)
+    path(
+        "api/sync/trigger-full/",
+        views_sync.NodeSyncAPI.as_view(),
+        name="sync_trigger_full",
+    ),
+    path("api/sync/status/", views_sync.sync_status, name="sync_status"),
+    path("api/node/status/", views_sync.SyncStatsAPI.as_view(), name="node_status"),
 ]

@@ -34,6 +34,7 @@ class NodeMiddleware:
                 "admin_email": "admin@chatserver.local",
                 "description": f"Local development node - {settings.NODE_NAME}",
                 "max_rooms_capacity": settings.MAX_ROOMS,
+                "api_key": settings.NODE_API_KEY,
             }
 
             response = requests.post(

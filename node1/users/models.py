@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import uuid
+from django.contrib.auth import get_user_model
 
 
 class CustomUser(AbstractUser):
@@ -62,6 +63,20 @@ class CustomUser(AbstractUser):
         self.total_messages_sent += 1
         self.save()
 
+    def to_sync_dict(self):
+        return {
+            "user_id": self.id,
+            "email": self.email,
+            "is_online": self.is_online,
+            "last_seen": self.last_seen.isoformat() if self.last_seen else None,
+            "avatar": str(self.avatar) if self.avatar else None,
+            "bio": self.bio or "",
+            "notification_enabled": self.notification_enabled,
+            "sound_enabled": self.sound_enabled,
+            "total_messages_sent": self.total_messages_sent,
+            "rooms_joined": self.rooms_joined,
+        }
+
 
 class UserSession(models.Model):
     """
@@ -83,6 +98,83 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.last_activity}"
+
+
+class UserProfile(models.Model):
+    """
+    Extended user profile with chat-specific information.
+    """
+
+    user = models.OneToOneField(
+        get_user_model(), on_delete=models.CASCADE, related_name="profile"
+    )
+
+    # Online status
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(auto_now=True)
+
+    # get_user_model() preferences
+    color_scheme = models.CharField(
+        max_length=20,
+        default="blue",
+        choices=[
+            ("blue", "Blue"),
+            ("green", "Green"),
+            ("purple", "Purple"),
+            ("red", "Red"),
+            ("yellow", "Yellow"),
+            ("indigo", "Indigo"),
+            ("pink", "Pink"),
+        ],
+    )
+    notification_enabled = models.BooleanField(default=True)
+    sound_enabled = models.BooleanField(default=True)
+
+    # get_user_model() stats
+    total_messages_sent = models.IntegerField(default=0)
+    rooms_joined = models.IntegerField(default=0)
+
+    # Profile information
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    bio = models.TextField(blank=True, null=True, max_length=500)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "user_profiles"
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"
+
+    @property
+    def color(self):
+        """Get user's color for UI elements"""
+        return self.color_scheme
+
+    def update_last_seen(self):
+        """Update last seen timestamp"""
+        self.last_seen = timezone.now()
+        self.save()
+
+    def increment_message_count(self):
+        """Increment total messages sent"""
+        self.total_messages_sent += 1
+        self.save()
+
+    def to_sync_dict(self):
+        return {
+            "user_id": self.user.id,
+            "email": self.email,
+            "is_online": self.is_online,
+            "last_seen": self.last_seen.isoformat() if self.last_seen else None,
+            "avatar": str(self.avatar) if self.avatar else None,
+            "bio": self.bio or "",
+            "notification_enabled": self.notification_enabled,
+            "sound_enabled": self.sound_enabled,
+            "total_messages_sent": self.total_messages_sent,
+            "rooms_joined": self.rooms_joined,
+        }
 
 
 class UserActivity(models.Model):

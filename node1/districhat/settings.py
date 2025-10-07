@@ -28,7 +28,6 @@ ALLOWED_HOSTS = [
 # Node 1 runs on port 8002
 PORT = 8002
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -85,7 +84,7 @@ AUTH_USER_MODEL = "users.CustomUser"
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "users.backends.EmailBackend",  # We'll create this
+    "users.backends.EmailBackend",  # To be created
 ]
 
 # WSGI and ASGI configuration
@@ -96,11 +95,15 @@ ASGI_APPLICATION = "districhat.asgi.application"
 NODE_NAME = "Local-Node-1"
 NODE_URL = "http://localhost:8002"
 MAX_ROOMS = 50
+NODE_API_KEY = f"{SECRET_KEY}-{NODE_NAME}"
 
 # This is a node, not the central server
 IS_NODE = True
 CENTRAL_SERVER_URL = "http://localhost:8001"  # Points to central server
 
+SYNC_ENABLED = True
+SYNC_TIMEOUT = 10  # seconds
+SYNC_MAX_RETRIES = 3
 
 # Channel layers for WebSockets
 CHANNEL_LAYERS = {

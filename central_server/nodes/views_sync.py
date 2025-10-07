@@ -1,12 +1,28 @@
-# nodes/views_sync.py
+from chat.models import (
+    Message,
+    ChatRoom,
+    RoomMembership,
+    MessageReadStatus,
+    SyncSession,
+    MessageSyncLog,
+    SystemLog,
+)
+from users.models import UserSession
+import logging
+from django.db import transaction
+from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
-import hashlib
 import json
 from nodes.models import Node
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -15,7 +31,6 @@ class NodeSyncAPI(View):
         """Receive sync data from nodes"""
         try:
             data = json.loads(request.body)
-            sync_type = data.get("sync_type", "incremental")
 
             # Validate node authentication
             if not self.authenticate_node(request, node_id):
@@ -56,3 +71,482 @@ class NodeSyncAPI(View):
         """Process incoming sync data from nodes"""
         # Implementation for processing sync data
         pass
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class SyncReceiverAPI(View):
+    def post(self, request):
+        """Receive sync data from nodes"""
+        try:
+            # Authenticate node
+            node = self.authenticate_node(request)
+            if not node:
+                return JsonResponse({"error": "Authentication failed"}, status=401)
+
+            data = json.loads(request.body)
+            timestamp = data.get("timestamp")
+
+            syncs = SyncSession.objects.create(
+                source_node=node,
+                started_at=timestamp,
+                status="in_progress",
+                sync_type="incremental",
+            )
+
+            SystemLog.objects.create(
+                level="info",
+                category="system",
+                message=f"Sync triggered by signal from node:{node.name}",
+                details=data,
+                user=request.user if request.user else None,
+                node=node,
+            )
+
+            model_name = data.get("model")
+            action = data.get("action")
+            sync_data = data.get("data")
+            # node_id = data.get("node_id")
+
+            # Process the sync request
+            self.process_sync_request(node, model_name, action, sync_data, syncs)
+
+            syncs.status = "completed"
+            syncs.completed_at = timezone.now()
+            syncs.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "processed_id": sync_data.get("id"),
+                    "action": action,
+                    "model": model_name,
+                    "timestamp": timestamp,
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Sync receiver error: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    def authenticate_node(self, request):
+        """Authenticate node using API key"""
+        api_key = request.headers.get("X-Node-API-Key")
+        if not api_key:
+            logger.info("Authentication failure: mising API KEY")
+            return None
+        logger.info(
+            f"Node: {json.loads(request.body).get('node_id', '')} Authenticated"
+        )
+
+        return Node.objects.filter(api_key=api_key, status="online").first()
+
+    def process_sync_request(self, node, model_name, action, sync_data, syncs):
+        """Process incoming sync request"""
+        with transaction.atomic():
+            if model_name == "message":
+                return self.process_message_sync(action, sync_data, node, syncs)
+            elif model_name == "chatroom":
+                return self.process_chatroom_sync(action, sync_data, node)
+            elif model_name == "roommembership":
+                return self.process_roommembership_sync(action, sync_data, node)
+            elif model_name == "messagereadstatus":
+                return self.process_messagereadstatus_sync(action, sync_data, node)
+            elif model_name == "session":
+                return self.process_session_sync(action, sync_data, node)
+            elif model_name == "user":
+                return self.process_user_sync(action, sync_data, node)
+            else:
+                raise ValueError(f"Unknown model: {model_name}")
+
+    def process_message_sync(self, action, data, node, syncs):
+        """Process message sync operations"""
+        if action == "create":
+            return self.create_or_update_message(data, node, syncs)
+        elif action == "update":
+            return self.create_or_update_message(data, node, syncs)
+        elif action == "delete":
+            return self.delete_message(data, syncs)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_or_update_message(self, data, node, syncs):
+        """Create or update message in central server"""
+        try:
+            # Get related objects
+            room = ChatRoom.objects.get(id=data["room_id"])
+            sender = User.objects.get(id=data["sender_id"])
+
+            # Create or update message
+            message, created = Message.objects.update_or_create(
+                id=data["id"],
+                defaults={
+                    "room": room,
+                    "sender": sender,
+                    "content": data["content"],
+                    "message_type": data.get("message_type", "text"),
+                    "created_at": data["created_at"],
+                    "updated_at": data["updated_at"],
+                    "is_edited": data.get("is_edited", False),
+                    "is_deleted": data.get("is_deleted", False),
+                },
+            )
+
+            MessageSyncLog.objects.create(
+                sync_session=syncs,
+                message=message,
+                action="create" if created else "update",
+            )
+
+            if created:
+                syncs.messages_synced += 1
+                syncs.save()
+
+            logger.info(
+                f"{'Created' if created else 'Updated'} message {message.id} from node {node.name}"
+            )
+            return message
+
+        except ChatRoom.DoesNotExist:
+            syncs.status = "failed"
+            syncs.save()
+            logger.error(f"ChatRoom {data['room_id']} not found for message sync")
+            raise
+        except User.DoesNotExist:
+            syncs.status = "failed"
+            syncs.save()
+            logger.error(f"User {data['sender_id']} not found for message sync")
+            raise
+
+    def delete_message(self, data, syncs) -> bool:
+        """
+        Delete message in central server
+        Args:
+        data: sync request data type->dict
+        syncs: Sync Session"""
+        try:
+            message = Message.objects.get(id=data["id"])
+            message.delete()
+
+            MessageSyncLog.objects.create(
+                sync_session=syncs,
+                message=message,
+                action="delete",
+            )
+            logger.info(f"Deleted message {data['id']}")
+            return True
+        except Message.DoesNotExist:
+            syncs.status = "failed"
+            syncs.save()
+            logger.warning(f"Message {data['id']} not found for deletion")
+            return True  # Already deleted, consider success
+
+    def process_chatroom_sync(self, action, data, node):
+        """Process chatroom sync operations"""
+        if action == "create":
+            return self.create_or_update_chatroom(data, node)
+        elif action == "update":
+            return self.create_or_update_chatroom(data, node)
+        elif action == "delete":
+            return self.delete_chatroom(data)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_or_update_chatroom(self, data, node):
+        """Create or update chatroom in central server"""
+        try:
+            # Get related objects
+            room_node = Node.objects.get(id=data["node_id"])
+            created_by = User.objects.get(id=data["created_by_id"])
+
+            # Create or update chatroom
+            chatroom, created = ChatRoom.objects.update_or_create(
+                id=data["id"],
+                defaults={
+                    "name": data["name"],
+                    "description": data.get("description", ""),
+                    "room_type": data.get("room_type", "public"),
+                    "node": room_node,
+                    "created_by": created_by,
+                    "is_active": data.get("is_active", True),
+                    "max_members": data.get("max_members", 100),
+                    "created_at": data["created_at"],
+                    "updated_at": data.get("updated_at", data["created_at"]),
+                },
+            )
+
+            logger.info(
+                f"{'Created' if created else 'Updated'} chatroom {chatroom.name} from node {node.name}"
+            )
+            return chatroom
+
+        except Node.DoesNotExist:
+            logger.error(f"Node {data['node_id']} not found for chatroom sync")
+            raise
+        except User.DoesNotExist:
+            logger.error(f"User {data['created_by_id']} not found for chatroom sync")
+            raise
+
+    def delete_chatroom(self, data) -> bool:
+        """Delete chatroom in central server"""
+        try:
+            chatroom = ChatRoom.objects.get(id=data["id"])
+            chatroom.delete()
+            logger.info(f"Deleted chatroom {data['id']}")
+            return True
+        except ChatRoom.DoesNotExist:
+            logger.warning(f"ChatRoom {data['id']} not found for deletion")
+            return True
+
+    def process_roommembership_sync(self, action, data, node):
+        """Process room membership sync operations"""
+        if action == "create":
+            return self.create_or_update_roommembership(data)
+        elif action == "update":
+            return self.create_or_update_roommembership(data)
+        elif action == "delete":
+            return self.delete_roommembership(data)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_or_update_roommembership(self, data):
+        """Create or update room membership in central server"""
+        try:
+            room = ChatRoom.objects.get(id=data["room_id"])
+            user = User.objects.get(id=data["user_id"])
+
+            membership, created = RoomMembership.objects.update_or_create(
+                room=room,
+                user=user,
+                defaults={
+                    "role": data.get("role", "member"),
+                    "joined_at": data["joined_at"],
+                    "last_read": data.get("last_read") or data["joined_at"],
+                },
+            )
+
+            logger.info(
+                f"{'Created' if created else 'Updated'} membership for user {user.username} in room {room.name}"
+            )
+            return membership
+
+        except ChatRoom.DoesNotExist:
+            logger.error(f"ChatRoom {data['room_id']} not found for membership sync")
+            raise
+        except User.DoesNotExist:
+            logger.error(f"User {data['user_id']} not found for membership sync")
+            raise
+
+    def delete_roommembership(self, data) -> bool:
+        """Delete room membership in central server"""
+        try:
+            room = ChatRoom.objects.get(id=data["room_id"])
+            user = User.objects.get(id=data["user_id"])
+
+            membership = RoomMembership.objects.get(room=room, user=user)
+            membership.delete()
+            logger.info(
+                f"Deleted membership for user {user.username} in room {room.name}"
+            )
+            return True
+
+        except (ChatRoom.DoesNotExist, User.DoesNotExist, RoomMembership.DoesNotExist):
+            logger.warning(f"RoomMembership not found for deletion: {data}")
+            return True
+
+    def process_messagereadstatus_sync(self, action, data, node):
+        """Process message sync operations"""
+        if action == "create":
+            return self.create_or_update_messagereadstatus(data, node)
+        elif action == "update":
+            return self.create_or_update_messagereadstatus(data, node)
+        elif action == "delete":
+            return self.delete_messagereadstatus(data)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_or_update_messagereadstatus(self, data, node):
+        """Create or update message in central server"""
+        try:
+            # Get related objects
+            user = User.objects.get(id=data["sender_id"])
+
+            message = Message.objects.get(id=data["message_id"])
+
+            # Create or update message
+            messageStatus, created = MessageReadStatus.objects.update_or_create(
+                id=data["id"],
+                defaults={
+                    "message": message,
+                    "user": user,
+                    "read_at": data["read_at"],
+                },
+            )
+
+            logger.info(
+                f"{'Created' if created else 'Updated'} message read status {messageStatus.id} from node {node.name}"
+            )
+            return messageStatus
+
+        except User.DoesNotExist:
+            logger.error(
+                f"User {data['room_id']} not found for message read status sync"
+            )
+            raise
+        except Message.DoesNotExist:
+            logger.error(
+                f"Message {data['message_id']} not found for message read status sync"
+            )
+            raise
+
+    def delete_messagereadstatus(self, data) -> bool:
+        """Delete message in central server"""
+        try:
+            # Get related objects
+            user = User.objects.get(id=data["sender_id"])
+
+            message = Message.objects.get(id=data["message_id"])
+
+            messageStatus = MessageReadStatus.objects.get(message=message, user=user)
+
+            messageStatus.delete()
+            logger.info(f"Deleted message {data['message_id']}")
+            return True
+        except MessageReadStatus.DoesNotExist:
+            logger.warning(
+                f"MessageReadStatus {data['message_id']} not found for deletion"
+            )
+            return True  # Already deleted, consider success
+
+    def process_session_sync(self, action, data, node):
+        """Process message sync operations"""
+        if action == "create":
+            return self.create_or_update_session(data, node)
+        elif action == "update":
+            return self.create_or_update_session(data, node)
+        elif action == "delete":
+            return self.delete_session(data)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_or_update_session(self, data, node):
+        """Create or update message in central server"""
+        try:
+            # Create or update message
+            session, created = UserSession.objects.update_or_create(
+                id=data["id"],
+                defaults={
+                    "session_key": data["session_key"],
+                    "ip_address": data["ip_address"],
+                    "user_agent": data["user_agent"],
+                    "last_activity": data["last_activity"],
+                },
+            )
+
+            logger.info(
+                f"{'Created' if created else 'Updated'} session {session.id} from node {node.name}"
+            )
+            return session
+
+        except UserSession.DoesNotExist:
+            logger.error(f"Session {data['id']} not found for session sync")
+            raise
+
+    def delete_session(self, data) -> bool:
+        """Delete message in central server"""
+        try:
+            # Get related objects
+            session = UserSession.objects.get(id=data["id"])
+
+            session.delete()
+            logger.info(f"Deleted session {data['id']}")
+            return True
+        except UserSession.DoesNotExist:
+            logger.warning(f"Session {data['id']} not found for deletion")
+            return True  # Already deleted, consider success
+
+    def process_user_sync(self, action, data, node):
+        """Process message sync operations"""
+        if action == "create":
+            return self.create_or_update_session(data, node)
+        elif action == "update":
+            return self.create_or_update_session(data, node)
+        elif action == "delete":
+            return self.delete_session(data)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_or_update_user(self, data, node):
+        """Create or update message in central server"""
+        try:
+            # Create or update message
+            user, created = User.objects.update_or_create(
+                id=data["id"],
+                defaults={
+                    "email": data[".email"],
+                    "is_online": data["is_online"],
+                    "last_seen": data["last_seen"],
+                    "avatar": data["avatar"],
+                    "bio": data["bio"],
+                    "notification_enabled": data["notification_enabled"],
+                    "sound_enabled": data["sound_enabled"],
+                    "total_messages_sent": data["total_messages_sent"],
+                    "rooms_joined": data["rooms_joined"],
+                },
+            )
+
+            logger.info(
+                f"{'Created' if created else 'Updated'} message status {user.id} from node {node.name}"
+            )
+            return user
+
+        except User.DoesNotExist:
+            logger.error(f"User {data['id']} not found for user sync")
+            raise
+
+    def delete_user(self, data) -> bool:
+        """Delete message in central server"""
+        try:
+            # Get related objects
+            user = User.objects.get(id=data["id"])
+
+            user.delete()
+            logger.info(f"Deleted user {data['id']}")
+            return True
+        except User.DoesNotExist:
+            logger.warning(f"User {data['id']} not found for deletion")
+            return True  # Already deleted, consider success
+
+
+@csrf_exempt
+def sync_status(request):
+    last_session = SyncSession.objects.order_by("-started_at").first()
+    return last_session.status
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class SyncStatsAPI(View):
+    def get(self, request):
+        """Get sync status and statistics"""
+        # Authenticate node
+        node = self.authenticate_node(request)
+        if not node:
+            return JsonResponse({"error": "Authentication failed"}, status=401)
+
+        stats = {
+            "node_name": node.name,
+            "last_sync": node.last_sync.isoformat() if node.last_sync else None,
+            "sync_enabled": node.sync_enabled,
+            "message_count": Message.objects.count(),
+            "room_count": ChatRoom.objects.count(),
+            "membership_count": RoomMembership.objects.count(),
+            "central_server_time": timezone.now().isoformat(),
+        }
+
+        return JsonResponse({"status": "success", "stats": stats})
+
+    def authenticate_node(self, request):
+        """Authenticate node using API key"""
+        api_key = request.headers.get("X-Node-API-Key")
+        if not api_key:
+            return None
+        return Node.objects.filter(api_key=api_key).first()

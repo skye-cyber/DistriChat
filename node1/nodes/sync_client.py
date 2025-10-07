@@ -2,24 +2,38 @@
 import requests
 import json
 import logging
+import hashlib
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+from nodes.models import NodeMetadata
+
+User = get_user_model()
 
 logger = logging.getLogger(__name__)
 
+this = NodeMetadata.objects.filter(
+    name=settings.NODE_NAME, url=settings.NODE_URL
+).first()
+
 
 class NodeSyncClient:
-    def __init__(self, node_id, central_server_url, api_key):
+    def __init__(
+        self,
+        node_id=this.id,
+        central_server_url=settings.CENTRAL_SERVER_URL,
+        api_key=this.api_key,
+    ):
         self.node_id = node_id
         self.central_server_url = central_server_url
         self.api_key = api_key
         self.last_sync = None
 
-    def sync_with_central(self, sync_type="incremental"):
+    def sync_with_central(self, sync_data=None, sync_type="incremental"):
         """Sync this node's data with central server"""
         try:
             # Prepare sync data
-            sync_data = self.prepare_sync_data(sync_type)
+            sync_data = sync_data if sync_data else self.prepare_sync_data(sync_type)
 
             # Send to central server
             response = requests.post(
@@ -71,7 +85,7 @@ class NodeSyncClient:
             logger.error(f"Pull error: {e}")
             return None
 
-    def prepare_sync_data(self, sync_type):
+    def prepare_sync_data(self, sync_type="incremental"):
         """Prepare data for syncing"""
         from chat.models import Message
         from django.utils import timezone
@@ -112,7 +126,6 @@ class NodeSyncClient:
     def process_pulled_data(self, sync_data):
         """Process data pulled from central server"""
         from chat.models import Message, ChatRoom
-        from users.models import User
 
         for msg_data in sync_data.get("messages", []):
             # Check if message already exists

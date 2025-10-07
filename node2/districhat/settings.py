@@ -96,6 +96,7 @@ ASGI_APPLICATION = "districhat.asgi.application"
 NODE_NAME = "Local-Node-2"
 NODE_URL = "http://localhost:8003"
 MAX_ROOMS = 50
+NODE_API_KEY = f"{SECRET_KEY}-{NODE_NAME}"
 
 # This is a node, not the central server
 IS_NODE = True

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import NodeRegistration, LoadBalanceRule
+from .models import NodeRegistration, LoadBalanceRule, NodeHeartbeat
 
 
 @admin.register(NodeRegistration)
@@ -106,3 +106,10 @@ class LoadBalanceRuleAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+
+@admin.register(NodeHeartbeat)
+class NodeHeartbeatAdmin(admin.ModelAdmin):
+    list_display = ("node", "timestamp", "load", "active_connections")
+    list_filter = ("timestamp",)
+    readonly_fields = ("timestamp",)

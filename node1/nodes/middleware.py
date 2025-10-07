@@ -22,9 +22,11 @@ class NodeMiddleware:
         """Register this node with the central server."""
         try:
             # Check if we're already registered
-            from .models import NodeRegistration
+            from .models import NodeMetadata
 
-            if NodeRegistration.objects.filter(node_url=settings.NODE_URL).exists():
+            if NodeMetadata.objects.filter(
+                url=settings.NODE_URL, name=settings.NODE_NAME
+            ).exists():
                 return
 
             # Register with central server
@@ -34,6 +36,7 @@ class NodeMiddleware:
                 "admin_email": "admin@chatserver.local",
                 "description": f"Local development node - {settings.NODE_NAME}",
                 "max_rooms_capacity": settings.MAX_ROOMS,
+                "api_key": settings.NODE_API_KEY,
             }
 
             response = requests.post(
@@ -54,23 +57,3 @@ class NodeMiddleware:
 
         except Exception as e:
             logger.error(f"Node registration error: {e}")
-
-    def auto_approve_node(self, registration_id):
-        """Auto-approve this node for development."""
-        try:
-            # In production, this would require admin approval
-            # For development, we auto-approve
-            from chat.models import Node
-
-            # Create node directly since we're in development
-            node = Node.objects.create(
-                name=settings.NODE_NAME,
-                url=settings.NODE_URL,
-                max_rooms=settings.MAX_ROOMS,
-                description=f"Local development node - {settings.NODE_NAME}",
-                status="online",
-            )
-            logger.info(f"Node {node.node_name} auto-approved for development")
-
-        except Exception as e:
-            logger.error(f"Auto-approval error: {e}")

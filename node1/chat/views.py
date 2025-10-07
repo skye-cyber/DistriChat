@@ -6,7 +6,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.contrib import messages
-from .models import ChatRoom, RoomMembership, Message, Node, MessageReadStatus
+from .models import ChatRoom, RoomMembership, Message, MessageReadStatus
+from nodes.models import NodeMetadata
 from users.models import UserActivity
 import json
 import logging
@@ -21,28 +22,23 @@ def dashboard_view(request):
     user_rooms = (
         ChatRoom.objects.filter(Q(room_type="public") | Q(members=request.user))
         .distinct()
-        .select_related("node", "created_by")
+        # .select_related("node", "created_by")
         .prefetch_related("members")
-    )
-
-    # Get online nodes
-    nodes = (
-        Node.objects.filter(status="online")
-        .annotate(room_count=Count("chat_rooms"))
-        .order_by("load")
     )
 
     # User stats
     user_room_count = request.user.chat_rooms.count()
     user_message_count = request.user.sent_messages.count()
 
+    node_meta = NodeMetadata.objects.all()
+
     context = {
         "chat_rooms": user_rooms,
-        "nodes": nodes,
+        "meta": node_meta,
         "user_room_count": user_room_count,
         "user_message_count": user_message_count,
     }
-    return render(request, "dashboard.html", context)
+    return render(request, "chat/dashboard.html", context)
 
 
 @login_required
@@ -57,37 +53,38 @@ def create_room_view(request):
             messages.error(request, "Room name is required.")
             return redirect("chat:dashboard")
 
-        # Find the best node (least loaded)
-        best_node = Node.objects.filter(status="online").order_by("load").first()
-        if not best_node:
-            messages.error(request, "No available nodes. Please try again later.")
-            return redirect("chat:dashboard")
-
         # Create the room
         room = ChatRoom.objects.create(
             name=room_name,
             description=room_description,
-            node=best_node,
             created_by=request.user,
         )
 
         # Add creator as owner
         RoomMembership.objects.create(room=room, user=request.user, role="owner")
 
-        # Update node room count
-        best_node.current_rooms += 1
-        best_node.update_load()
-
         # Log activity
         UserActivity.objects.create(
             user=request.user,
             activity_type="room_created",
-            description=f'Created room "{room_name}" on node {best_node.name}',
+            description=f'Created room "{room_name}"',
+            ip_address=get_client_ip(request),
+        )
+
+        # Update creator room joins
+        request.user.rooms_joined += 1
+        request.user.save()
+
+        # Log activity
+        UserActivity.objects.create(
+            user=request.user,
+            activity_type="room_joined",
+            description=f'Joined room "{room.name}"',
             ip_address=get_client_ip(request),
         )
 
         messages.success(request, f'Room "{room_name}" created successfully!')
-        return redirect("chat_room", room_id=room.id)
+        return redirect("chat:chat_room", room_id=room.id)
 
     return redirect("chat:dashboard")
 
@@ -135,7 +132,7 @@ def chat_room_view(request, room_id):
         "messages": messages,
         "online_members": online_members,
     }
-    return render(request, "chat_room.html", context)
+    return render(request, "chat/chat_room.html", context)
 
 
 @login_required
@@ -243,24 +240,48 @@ def leave_room_view(request, room_id):
 
 
 @login_required
+@require_http_methods(["DELETE"])
 def delete_room_view(request, room_id):
     """Delete a room (owners only)."""
-    room = get_object_or_404(ChatRoom, id=room_id)
+    try:
+        room = get_object_or_404(ChatRoom, id=room_id)
 
-    # Check if user is owner
-    membership = RoomMembership.objects.filter(room=room, user=request.user).first()
-    if not membership or membership.role != "owner":
-        return HttpResponseForbidden("Only room owners can delete rooms.")
+        print("\033[1;31mDeleting..\033[0m", room.name)
 
-    # Update node room count
-    room.node.current_rooms -= 1
-    room.node.update_load()
+        # Check if user is owner
+        membership = RoomMembership.objects.filter(room=room, user=request.user).first()
+        if not membership or membership.role != "owner":
+            return HttpResponseForbidden("Only room owners can delete rooms.")
 
-    room_name = room.name
-    room.delete()
+        # Update node room count
+        room.node.current_rooms = (
+            0 if (room.node.current_rooms - 1 < 0) else (room.node.current_rooms - 1)
+        )
 
-    messages.success(request, f'Room "{room_name}" has been deleted.')
-    return redirect("chat:dashboard")
+        room.node.update_load()
+
+        room_name = room.name
+        room.delete()
+
+        # Update creator room joins
+        request.user.rooms_joined = (
+            0
+            if (request.user.rooms_joined - 1 < 0)
+            else (request.user.rooms_joined - 1)
+        )
+        request.user.save()
+
+        print("\033[1mDeletion \033[1;32msucceeded..\033[0m")
+
+        messages.success(request, f'Room "{room_name}" has been deleted.')
+        return JsonResponse({"status": "success"})
+    except ChatRoom.DoesNotExist:
+        return JsonResponse({"error": "Node not found"}, status=404)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        logger.error(f"Delete node error: {e}")
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 
 def get_client_ip(request):

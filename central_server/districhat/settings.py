@@ -80,7 +80,7 @@ AUTH_USER_MODEL = "users.CustomUser"
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "users.backends.EmailBackend",  # We'll create this
+    "users.backends.EmailBackend",
 ]
 
 # WSGI and ASGI configuration
@@ -153,7 +153,7 @@ USE_TZ = True
 
 # Login URLs
 LOGIN_REDIRECT_URL = "dashboard"
-LOGIN_URL = "login"
+LOGIN_URL = "/accounts/login"
 LOGOUT_REDIRECT_URL = "index"
 
 # Static files (CSS, JavaScript, Images)
@@ -186,6 +186,7 @@ DOCUMENTS_ROOT = BASE_DIR / "documents"
 
 # email verification
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587  # Commonly used ports are 587 (TLS) or 465 (SSL)
 EMAIL_USE_TLS = True  # Set to True for port 587, False for port 465

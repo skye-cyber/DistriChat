@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, get_backends
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
@@ -26,7 +26,16 @@ def register_view(request):
                 ip_address=get_client_ip(request),
             )
 
-            login(request, user)
+            # Specify backend explicitly
+            backend = get_backends()[0]  # Use the first backend (usually ModelBackend)
+            login(
+                request,
+                user,
+                backend=backend.__class__.__module__ + "." + backend.__class__.__name__,
+            )
+            # simpler
+            # login(request, user, backend="users.backends.EmailBackend")
+
             messages.success(request, "Registration successful! Welcome to DistriChat.")
             return redirect("chat:dashboard")
     else:
@@ -63,6 +72,9 @@ def login_view(request):
                     ip_address=get_client_ip(request),
                 )
 
+                # Update lats seen
+                request.user.update_last_seen()
+
                 messages.success(request, f"Welcome back, {user.username}!")
                 return redirect("chat:dashboard")
     else:
@@ -76,7 +88,9 @@ def logout_view(request):
     """User logout view."""
     # Update user online status
     request.user.is_online = False
-    request.user.save()
+
+    # Update lats seen
+    request.user.update_last_seen()
 
     # Log user activity
     UserActivity.objects.create(

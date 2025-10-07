@@ -16,7 +16,7 @@
     <!-- Quick Actions -->
     <div class="mb-8 flex flex-wrap gap-4 justify-center" data-aos="fade-up" data-aos-delay="200">
       <button onclick="openCreateNodeModal()"
-              class="btn-primary px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform">
+              class="btn-primary text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
         </svg>
@@ -303,7 +303,7 @@
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-700">Average Load</span>
                 <span class="text-sm font-semibold text-blue-600">
-                  {% if nodes %}{% with total_load=0 %}{% for node in nodes %}{{ total_load|add:node.load }}{% endfor %}{{ total_load|div:nodes|length|floatformat:1 }}%{% endwith %}{% else %}0%{% endif %}
+                  {% if nodes %}{% with total_load=0 %}{% for node in nodes %}{{ total_load|add:node.load }}{% endfor %}{{ total_load|div:total_nodes|floatformat:1 }}%{% endwith %}{% else %}0%{% endif %}
                 </span>
               </div>
               <div class="flex items-center justify-between">
@@ -379,7 +379,9 @@
     </div>
   </div>
 </div>
-
+{% block footer %}
+    {# disable footer #}
+{% endblock %}
 <script>
 // Modal Management
 function openCreateNodeModal() {

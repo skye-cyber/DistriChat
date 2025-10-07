@@ -9,36 +9,27 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def auto_sync_nodes():
+def auto_sync():
     """Automatically sync all nodes on a schedule"""
-    from .models import Node
+    try:
+        sync_client = NodeSyncClient()
 
-    nodes = Node.objects.filter(status="online")
+        # Perform incremental sync
+        result = sync_client.sync_with_central("incremental")
 
-    for node in nodes:
-        try:
-            sync_client = NodeSyncClient(
-                node_id=node.id,
-                central_server_url=settings.CENTRAL_SERVER_URL,
-                api_key=node.api_key,
-            )
+        if result:
+            logger.info(f"Auto-sync completed for {settings.NODE_NAME}")
+        else:
+            logger.warning(f"Auto-sync failed for {settings.NODE_NAME}")
 
-            # Perform incremental sync
-            result = sync_client.sync_with_central("incremental")
-
-            if result:
-                logger.info(f"Auto-sync completed for {node.name}")
-            else:
-                logger.warning(f"Auto-sync failed for {node.name}")
-
-        except Exception as e:
-            logger.error(f"Auto-sync error for {node.name}: {e}")
+    except Exception as e:
+        logger.error(f"Auto-sync error for {settings.NODE_NAME}: {e}")
 
 
 # Celery beat schedule
 CELERY_BEAT_SCHEDULE = {
-    "auto-sync-nodes-every-5-minutes": {
-        "task": "nodes.tasks.auto_sync_nodes",
+    "auto-sync-node-every-5-minutes": {
+        "task": "nodes.tasks.auto_sync_node",
         "schedule": crontab(minute="*/5"),  # Every 5 minutes
     },
 }

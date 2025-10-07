@@ -5,7 +5,6 @@ from .models import (
     RoomMembership,
     Message,
     MessageReadStatus,
-    NodeHeartbeat,
     SystemLog,
 )
 
@@ -66,13 +65,6 @@ class MessageReadStatusAdmin(admin.ModelAdmin):
     list_display = ("user", "message", "read_at")
     list_filter = ("read_at",)
     search_fields = ("user__username", "message__content")
-
-
-@admin.register(NodeHeartbeat)
-class NodeHeartbeatAdmin(admin.ModelAdmin):
-    list_display = ("node", "timestamp", "load", "active_connections")
-    list_filter = ("timestamp",)
-    readonly_fields = ("timestamp",)
 
 
 @admin.register(SystemLog)

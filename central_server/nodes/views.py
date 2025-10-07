@@ -5,8 +5,9 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from nodes.models import NodeRegistration, LoadBalanceRule
-from chat.models import Node, NodeHeartbeat, SystemLog, ChatRoom, Message
+from nodes.models import NodeRegistration, LoadBalanceRule, NodeHeartbeat
+from chat.models import Node, SystemLog, ChatRoom, Message
+from django.db import transaction, IntegrityError
 import json
 import logging
 from django.contrib.auth import get_user_model
@@ -27,31 +28,45 @@ class NodeManager:
     @staticmethod
     def create_node(name, url, max_rooms=50, user=None):
         """Create a new node with validation."""
-        print("\033[imCreating node..\033[0m", name)
+        print(f"\033[1mCreating node..\033[0m {name}-{url}-{max_rooms}")
 
-        if Node.objects.filter(Q(name=name) | Q(url=url)).exists():
-            raise ValueError("Node with this name or URL already exists")
+        try:
+            with transaction.atomic():
+                node, created = Node.objects.get_or_create(
+                    name=name,
+                    defaults={
+                        "url": url,
+                        "max_rooms": max_rooms,
+                        "status": "offline",
+                    },
+                )
 
-        node = Node.objects.create(
-            name=name, url=url, max_rooms=max_rooms, status="offline"
-        )
+                if not created:
+                    raise ValueError("Node with this name already exists")
 
-        SystemLog.objects.create(
-            level="info",
-            category="node",
-            message=f"Node created: {node.name}",
-            user=user,
-            node=node,
-        )
-        print("\033[imCreation \033[1;32msucceeded..\033[0m")
+                SystemLog.objects.create(
+                    level="info",
+                    category="node",
+                    message=f"Node created: {node.name}",
+                    user=user,
+                    node=node,
+                )
 
-        return node
+            print("\033[1mCreation \033[1;32msucceeded..\033[0m")
+            return node
+
+        except IntegrityError as e:
+            logger.warn(f"Integrity violation: {e}")
+            print("\033[1;33mIntegrity exception:\033[0m", e)
+            q_node = Node.objects.filter(name=name)
+            return q_node.first() if q_node.exists() else None
+            # raise ValueError("Node with this name or URL already exists")
 
     @staticmethod
     def delete_node(node_id, user=None):
         """Delete a node with validation."""
         node = Node.objects.get(id=node_id)
-        print("\033[imDeleting node..\033[0m", node.name)
+        print("\033[1mDeleting node..\033[0m", node.name)
 
         if node.chat_rooms.filter(is_active=True).exists():
             raise ValueError("Cannot delete node with active rooms")
@@ -65,7 +80,7 @@ class NodeManager:
             message=f"Node deleted: {node_name}",
             user=user,
         )
-        print("\033[imDeletion \033[1;32msucceeded..\033[0m")
+        print("\033[1mDeletion \033[1;32msucceeded..\033[0m")
 
         return True
 
@@ -146,6 +161,16 @@ def register_node(request):
         data = json.loads(request.body)
         print("\033[1mRegistering new node..\033[0m", data["node_name"])
 
+        if NodeRegistration.objects.filter(node_name=data["node_name"]).exists():
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "registration_id": NodeRegistration.objects.get(
+                        node_name=data["node_name"]
+                    ).id,
+                }
+            )
+
         registration = NodeRegistration.objects.create(
             node_name=data["node_name"],
             node_url=data["node_url"],
@@ -164,7 +189,10 @@ def register_node(request):
         print("\033[1mRegistration \033[1;32msucceeded..\033[0m", data["node_name"])
 
         return JsonResponse(
-            {"status": "success", "registration_id": str(registration.id)}
+            {
+                "status": "success",
+                "registration_id": str(registration.id),
+            }
         )
     except KeyError as e:
         return JsonResponse({"error": f"Missing field: {str(e)}"}, status=400)
@@ -211,20 +239,23 @@ def approve_node(request, registration_id):
             request.user,
         )
 
-        registration.status = "approved"
-        registration.approved_by = request.user
-        registration.approved_at = timezone.now()
-        registration.save()
+        if node:
+            registration.status = "approved"
+            registration.approved_by = request.user
+            registration.approved_at = timezone.now()
+            registration.save()
 
-        SystemLog.objects.create(
-            level="info",
-            category="node",
-            message=f"Node approved: {node.name}",
-            user=request.user,
-            node=node,
-        )
+            SystemLog.objects.create(
+                level="info",
+                category="node",
+                message=f"Node approved: {registration.node_name}",
+                user=request.user,
+                node=node,
+            )
 
-        return JsonResponse({"status": "success", "node_id": str(node.id)})
+            print("Approval succeeded")
+            return JsonResponse({"status": "success", "node_id": str(node.id)})
+        return JsonResponse({"status": "error", "error": "Approval Failed"}, status=500)
 
     except ValueError as e:
         return JsonResponse({"error": str(e)}, status=400)
