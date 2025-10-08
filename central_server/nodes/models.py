@@ -82,6 +82,22 @@ class Node(models.Model):
             self.load = 0
         self.save()
 
+    @property
+    def health_score(self):
+        """Get cached health score"""
+        from django.core.cache import cache
+
+        cache_key = f"node_health_{self.id}"
+        health_data = cache.get(cache_key, {})
+        return health_data.get("health_score", 100)
+
+    def get_system_metrics(self):
+        """Get cached system metrics"""
+        from django.core.cache import cache
+
+        cache_key = f"node_metrics_{self.id}"
+        return cache.get(cache_key, {})
+
     def to_dict(self):
         return {
             "url": self.url,
@@ -92,8 +108,8 @@ class Node(models.Model):
             "max_rooms": self.max_rooms,
             "load": self.load,
             "status": self.status,
-            "last_heartbeat": self.last_heartbeat,
-            "last_sync": self.last_sync,
+            "last_heartbeat": str(self.last_heartbeat) if self.last_heartbeat else None,
+            "last_sync": str(self.last_sync) if self.last_sync else None,
         }
 
 

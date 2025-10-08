@@ -96,7 +96,7 @@ class NodeSyncSignalHandler:
                 "action": action,
                 "data": self.serialize_instance(instance),
                 "timestamp": timezone.now().isoformat(),
-                "node_id": str(self.node_id),
+                "origin_node_id": str(self.node_id),
             }
 
             response = requests.post(
@@ -104,6 +104,7 @@ class NodeSyncSignalHandler:
                 json=sync_data,
                 headers={
                     "X-Node-API-Key": str(self.node_api_key),
+                    "X-ORIGIN": settings.NODE_NAME,
                     "Content-Type": "application/json",
                 },
                 timeout=10,

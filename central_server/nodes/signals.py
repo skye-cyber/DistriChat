@@ -17,7 +17,7 @@ def sync_node_metadata(sender, instance, created, **kwargs):
         return
 
     data = instance.to_dict()
-    api_url = f"{instance.url.rstrip('/')}/nodes/meta/set/"
+    api_url = f"{instance.url.rstrip('/')}/nodes/api/peer/meta/set/"
 
     # Defer API call until after transaction is fully committed
     transaction.on_commit(lambda: _meta_update_handler(api_url, data, created, False))
@@ -40,7 +40,7 @@ def sync_peer_delete(sender, instance, **kwargs):
         "api_key": instance.api_key,
         "id": str(instance.id),
     }
-    api_url = f"{instance.url.rstrip('/')}/nodes/peer/delete/"
+    api_url = f"{instance.url.rstrip('/')}/nodes/api/peer/delete/"
 
     def reset_reg():
         if reg.exists():

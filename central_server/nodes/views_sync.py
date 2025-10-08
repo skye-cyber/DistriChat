@@ -19,6 +19,7 @@ import json
 from nodes.models import Node
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from chat.signals import get_central_sync_handler
 
 User = get_user_model()
 
@@ -76,14 +77,21 @@ class NodeSyncAPI(View):
 @method_decorator(csrf_exempt, name="dispatch")
 class SyncReceiverAPI(View):
     def post(self, request):
-        """Receive sync data from nodes"""
+        """Endpoint Receive sync data from nodes"""
+
         try:
+            data = json.loads(request.body)
+            handler = get_central_sync_handler()
+
+            # Set the origin before saving
+            node_id = data.get("origin_node_id")
+            handler.set_sync_origin(node_id)
+
             # Authenticate node
             node = self.authenticate_node(request)
             if not node:
                 return JsonResponse({"error": "Authentication failed"}, status=401)
 
-            data = json.loads(request.body)
             timestamp = data.get("timestamp")
 
             syncs = SyncSession.objects.create(
@@ -138,9 +146,13 @@ class SyncReceiverAPI(View):
                 status=500,
             )
         except Exception as e:
-            raise
+            handler.clear_sync_origin()
             logger.error(f"Sync receiver error: {e}")
             return JsonResponse({"error": str(e)}, status=500)
+
+        finally:
+            # Always clear the origin
+            handler.clear_sync_origin()
 
     def authenticate_node(self, request):
         """Authenticate node using API key"""

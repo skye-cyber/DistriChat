@@ -57,7 +57,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_browser_reload.middleware.BrowserReloadMiddleware",
-    "nodes.middleware.NodeMiddleware",
+    "nodes.middleware.NodeRegistrationMiddleware",
+    "nodes.middleware.NodeHeartbeatMiddleware",
 ]
 
 ROOT_URLCONF = "districhat.urls"

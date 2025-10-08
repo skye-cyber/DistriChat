@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views, views_sync
+from .nodes_health import node_heartbeat_processor
 
 app_name = "nodes"
 
@@ -17,6 +18,11 @@ urlpatterns = [
     path("reject/<uuid:registration_id>/", views.reject_node, name="reject_node"),
     # API endpoints
     path("heartbeat/<uuid:node_id>/", views.node_heartbeat, name="node_heartbeat"),
+    path(
+        "api/heartbeat/<uuid:node_id>/",
+        node_heartbeat_processor,
+        name="node_heartbeat_api",
+    ),
     path("status/", views.node_status_api, name="node_status"),
     # Sync API endpoints
     path(
