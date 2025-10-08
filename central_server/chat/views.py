@@ -27,11 +27,7 @@ def dashboard_view(request):
     )
 
     # Get online nodes
-    nodes = (
-        Node.objects.filter(status="online")
-        .annotate(room_count=Count("chat_rooms"))
-        .order_by("load")
-    )
+    nodes = Node.objects.all().annotate(room_count=Count("chat_rooms")).order_by("load")
 
     # User stats
     user_room_count = request.user.chat_rooms.count()

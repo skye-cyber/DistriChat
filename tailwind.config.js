@@ -33,6 +33,34 @@ module.exports = {
           800: "#1e40af",
           900: "#1e3a8a",
         },
+        "cyber-blue": "#00d9ff",
+        "cyber-purple": "#8a2be2",
+        "cyber-dark": "#0a0a1f",
+        "cyber-darker": "#050510",
+      },
+      animation: {
+        "pulse-glow": "pulse-glow 2s infinite",
+        "slide-in-float": "float-slide-in 6s ease-in-out infinite",
+        float: "float 4s ease-in-out infinite",
+      },
+      keyframes: {
+        "pulse-glow": {
+          "0%, 100%": {
+            boxShadow: "0 0 5px #00d9ff, 0 0 10px #00d9ff, 0 0 15px #00d9ff",
+          },
+          "50%": {
+            boxShadow: "0 0 10px #00d9ff, 0 0 20px #00d9ff, 0 0 30px #00d9ff",
+          },
+        },
+        "slide-in-float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        float: {
+          "0%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
       fontSize: {
         h1: "36", // Adjust as needed

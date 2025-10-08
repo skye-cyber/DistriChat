@@ -88,8 +88,12 @@ class Node(models.Model):
             "name": self.name,
             "id": str(self.id),
             "api_key": self.api_key,
-            "room_count": self.current_rooms,
+            "current_rooms": self.current_rooms,
+            "max_rooms": self.max_rooms,
             "load": self.load,
+            "status": self.status,
+            "last_heartbeat": self.last_heartbeat,
+            "last_sync": self.last_sync,
         }
 
 

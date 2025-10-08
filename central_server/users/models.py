@@ -67,6 +67,22 @@ class CustomUser(AbstractUser):
     def is_admin(self):
         return self.is_superuser
 
+    def _serialize_custom_user(self, instance):
+        """Optimized custom user serialization"""
+        return {
+            "user_id": str(instance.id),
+            "username": instance.username,
+            "email": instance.email,
+            "is_online": instance.is_online,
+            "last_seen": instance.last_seen.isoformat() if instance.last_seen else None,
+            "avatar": str(instance.avatar) if instance.avatar else None,
+            "bio": instance.bio or "",
+            "notification_enabled": instance.notification_enabled,
+            "sound_enabled": instance.sound_enabled,
+            "total_messages_sent": instance.total_messages_sent,
+            "rooms_joined": instance.rooms_joined,
+        }
+
 
 class UserSession(models.Model):
     """
@@ -88,6 +104,15 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.last_activity}"
+
+    def to_sync_dict(self):
+        return {
+            "user_id": str(self.user.id),
+            "session_key": self.session_key,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "last_activity": self.last_activity,
+        }
 
 
 class UserProfile(models.Model):

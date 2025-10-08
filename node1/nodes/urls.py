@@ -9,4 +9,5 @@ urlpatterns = [
     path("logs/", views.system_logs, name="system_logs"),
     # Save node metadata
     path("meta/set/", views.save_meta, name="save_node_meta"),
+    path("peer/delete/", views.delete_peer, name="delete_peer_node"),
 ]

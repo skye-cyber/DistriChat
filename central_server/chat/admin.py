@@ -1,28 +1,11 @@
 from django.contrib import admin
 from .models import (
-    Node,
     ChatRoom,
     RoomMembership,
     Message,
     MessageReadStatus,
     SystemLog,
 )
-
-
-@admin.register(Node)
-class NodeAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "url",
-        "status",
-        "load",
-        "current_rooms",
-        "max_rooms",
-        "last_heartbeat",
-    )
-    list_filter = ("status", "created_at")
-    search_fields = ("name", "url")
-    readonly_fields = ("last_heartbeat", "created_at", "updated_at")
 
 
 @admin.register(ChatRoom)

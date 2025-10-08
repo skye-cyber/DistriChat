@@ -98,7 +98,7 @@ class SyncReceiverAPI(View):
                 category="system",
                 message=f"Sync triggered by signal from node:{node.name}",
                 details=data,
-                user=request.user if request.user else None,
+                user=None,  # System triggered not user
                 node=node,
             )
 
@@ -108,29 +108,44 @@ class SyncReceiverAPI(View):
             # node_id = data.get("node_id")
 
             # Process the sync request
-            self.process_sync_request(node, model_name, action, sync_data, syncs)
+            success = self.process_sync_request(
+                node, model_name, action, sync_data, syncs
+            )
 
-            syncs.status = "completed"
-            syncs.completed_at = timezone.now()
-            syncs.save()
+            if success:
+                syncs.status = "completed"
+                syncs.completed_at = timezone.now()
+                syncs.save()
 
+                return JsonResponse(
+                    {
+                        "status": "success",
+                        "processed_id": sync_data.get("id"),
+                        "action": action,
+                        "model": model_name,
+                        "timestamp": timestamp,
+                    },
+                    status=200,
+                )
             return JsonResponse(
                 {
-                    "status": "success",
+                    "status": "fail",
                     "processed_id": sync_data.get("id"),
                     "action": action,
                     "model": model_name,
                     "timestamp": timestamp,
-                }
+                },
+                status=500,
             )
-
         except Exception as e:
+            raise
             logger.error(f"Sync receiver error: {e}")
             return JsonResponse({"error": str(e)}, status=500)
 
     def authenticate_node(self, request):
         """Authenticate node using API key"""
         api_key = request.headers.get("X-Node-API-Key")
+
         if not api_key:
             logger.info("Authentication failure: mising API KEY")
             return None
@@ -138,7 +153,7 @@ class SyncReceiverAPI(View):
             f"Node: {json.loads(request.body).get('node_id', '')} Authenticated"
         )
 
-        return Node.objects.filter(api_key=api_key, status="online").first()
+        return Node.objects.filter(api_key=api_key).first()
 
     def process_sync_request(self, node, model_name, action, sync_data, syncs):
         """Process incoming sync request"""
@@ -172,8 +187,14 @@ class SyncReceiverAPI(View):
     def create_or_update_message(self, data, node, syncs):
         """Create or update message in central server"""
         try:
+            print(data["room_id"])
             # Get related objects
-            room = ChatRoom.objects.get(id=data["room_id"])
+            q_room = ChatRoom.objects.filter(id=data["room_id"])
+            if not q_room.exists():
+                logger.error(f"ChatRoom {data['room_id']} not found for message sync")
+                return None
+
+            room = q_room.first()
             sender = User.objects.get(id=data["sender_id"])
 
             # Create or update message
@@ -210,12 +231,10 @@ class SyncReceiverAPI(View):
             syncs.status = "failed"
             syncs.save()
             logger.error(f"ChatRoom {data['room_id']} not found for message sync")
-            raise
         except User.DoesNotExist:
             syncs.status = "failed"
             syncs.save()
             logger.error(f"User {data['sender_id']} not found for message sync")
-            raise
 
     def delete_message(self, data, syncs) -> bool:
         """
@@ -396,7 +415,6 @@ class SyncReceiverAPI(View):
             logger.error(
                 f"Message {data['message_id']} not found for message read status sync"
             )
-            raise
 
     def delete_messagereadstatus(self, data) -> bool:
         """Delete message in central server"""
@@ -433,7 +451,7 @@ class SyncReceiverAPI(View):
         try:
             # Create or update message
             session, created = UserSession.objects.update_or_create(
-                id=data["id"],
+                id=data["user_id"],
                 defaults={
                     "session_key": data["session_key"],
                     "ip_address": data["ip_address"],
@@ -467,9 +485,9 @@ class SyncReceiverAPI(View):
     def process_user_sync(self, action, data, node):
         """Process message sync operations"""
         if action == "create":
-            return self.create_or_update_session(data, node)
+            return self.create_or_update_user(data, node)
         elif action == "update":
-            return self.create_or_update_session(data, node)
+            return self.create_or_update_user(data, node)
         elif action == "delete":
             return self.delete_session(data)
         else:
@@ -480,9 +498,10 @@ class SyncReceiverAPI(View):
         try:
             # Create or update message
             user, created = User.objects.update_or_create(
-                id=data["id"],
+                id=data["user_id"],
                 defaults={
-                    "email": data[".email"],
+                    "username": data["username"],
+                    "email": data["email"],
                     "is_online": data["is_online"],
                     "last_seen": data["last_seen"],
                     "avatar": data["avatar"],
@@ -507,13 +526,13 @@ class SyncReceiverAPI(View):
         """Delete message in central server"""
         try:
             # Get related objects
-            user = User.objects.get(id=data["id"])
+            user = User.objects.get(id=data["user_id"])
 
             user.delete()
-            logger.info(f"Deleted user {data['id']}")
+            logger.info(f"Deleted user {data['user_id']}")
             return True
         except User.DoesNotExist:
-            logger.warning(f"User {data['id']} not found for deletion")
+            logger.warning(f"User {data['user_id']} not found for deletion")
             return True  # Already deleted, consider success
 
 

@@ -17,6 +17,11 @@ class ChatRoom(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
+    node = models.ForeignKey(
+        "nodes.PeerNode",
+        on_delete=models.CASCADE,
+        related_name="chat_rooms",
+    )
     description = models.TextField(blank=True, null=True)
     room_type = models.CharField(max_length=20, choices=ROOM_TYPES, default="public")
     created_by = models.ForeignKey(
@@ -35,7 +40,7 @@ class ChatRoom(models.Model):
     class Meta:
         db_table = "chat_rooms"
         ordering = ["-created_at"]
-        # unique_together = ["name", "node"]
+        unique_together = ["name", "node"]
 
     def __str__(self):
         return f"{self.name} (Active: {self.is_active})"
@@ -62,6 +67,7 @@ class ChatRoom(models.Model):
         """Convert chat room to sync dictionary"""
         return {
             "id": str(self.id),
+            "node_id": str(self.node.id),
             "name": self.name,
             "description": self.description,
             "room_type": self.room_type,
@@ -86,7 +92,7 @@ class RoomMembership(models.Model):
         ("member", "Member"),
     ]
 
-    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
+    room = models.ForeignKey("chat.ChatRoom", on_delete=models.CASCADE)
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="member")
     joined_at = models.DateTimeField(auto_now_add=True)

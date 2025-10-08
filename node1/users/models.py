@@ -63,9 +63,14 @@ class CustomUser(AbstractUser):
         self.total_messages_sent += 1
         self.save()
 
+    @property
+    def is_admin(self):
+        return self.is_superuser
+
     def to_sync_dict(self):
         return {
             "user_id": str(self.id),  # ✅ Convert UUID to string
+            "username": self.username,
             "email": self.email,
             "is_online": self.is_online,
             "last_seen": self.last_seen.isoformat() if self.last_seen else None,
@@ -98,6 +103,15 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.last_activity}"
+
+    def to_sync_dict(self):
+        return {
+            "user_id": str(self.user.id),
+            "session_key": self.session_key,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "last_activity": self.last_activity,
+        }
 
 
 class UserProfile(models.Model):

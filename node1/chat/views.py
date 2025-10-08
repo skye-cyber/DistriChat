@@ -6,8 +6,9 @@ from django.views.decorators.csrf import csrf_protect
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.contrib import messages
-from .models import ChatRoom, RoomMembership, Message, MessageReadStatus
-from nodes.models import NodeMetadata
+from django.conf import settings
+from chat.models import ChatRoom, RoomMembership, Message, MessageReadStatus
+from nodes.models import NodeMetadata, PeerNode
 from users.models import UserActivity
 import json
 import logging
@@ -30,11 +31,18 @@ def dashboard_view(request):
     user_room_count = request.user.chat_rooms.count()
     user_message_count = request.user.sent_messages.count()
 
-    node_meta = NodeMetadata.objects.all()
+    node_meta = NodeMetadata.objects.filter(name=settings.NODE_NAME).first()
 
+    # Get online nodes
+    nodes = (
+        PeerNode.objects.exclude(name=settings.NODE_NAME)
+        .annotate(room_count=Count("chat_rooms"))
+        .order_by("load")
+    )
     context = {
         "chat_rooms": user_rooms,
         "meta": node_meta,
+        "peer_nodes": nodes,
         "user_room_count": user_room_count,
         "user_message_count": user_message_count,
     }
@@ -53,9 +61,17 @@ def create_room_view(request):
             messages.error(request, "Room name is required.")
             return redirect("chat:dashboard")
 
+        # Assign to this node
+        node = PeerNode.objects.filter(name=settings.NODE_NAME).first()
+
+        if not node:
+            messages.error(request, "No available nodes. Please try again later.")
+            return redirect("chat:dashboard")
+
         # Create the room
         room = ChatRoom.objects.create(
             name=room_name,
+            node=node,
             description=room_description,
             created_by=request.user,
         )

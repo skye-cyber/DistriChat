@@ -292,3 +292,109 @@ body {
   background: #e2e8f0;
   border-radius: 2px;
 }
+
+.cyber-font {
+  font-family: "Orbitron", sans-serif;
+}
+
+.cyber-border {
+  border: 1px solid rgba(0, 217, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+}
+
+.cyber-input {
+  background: rgba(10, 10, 31, 0.7);
+  border: 1px solid rgba(0, 217, 255, 0.5);
+  color: #e0e0ff;
+  transition: all 0.3s ease;
+}
+
+.cyber-input:focus {
+  border-color: #00d9ff;
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+  background: rgba(10, 10, 31, 0.9);
+}
+
+.cyber-button {
+  background: linear-gradient(135deg, #00d9ff 0%, #8a2be2 100%);
+  border: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 217, 255, 0.4);
+}
+
+.cyber-button:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.cyber-button:hover:after {
+  left: 100%;
+}
+
+.cyber-button-secondary {
+  background: transparent;
+  border: 1px solid rgba(0, 217, 255, 0.5);
+  color: #00d9ff;
+}
+
+.cyber-button-secondary:hover {
+  background: rgba(0, 217, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
+.grid-pattern {
+  background-image: linear-gradient(rgba(0, 217, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.particle {
+  position: absolute;
+  background: rgba(0, 217, 255, 0.5);
+  border-radius: 50%;
+  animation: float 15s infinite linear;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) translateX(100px);
+    opacity: 0;
+  }
+}

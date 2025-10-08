@@ -110,6 +110,9 @@ class NodeSyncSignalHandler:
             )
 
             if response.status_code == 200:
+                print(
+                    f"DEBUG: Sync successful for {model_name} {action}: {instance.id}"
+                )
                 logger.debug(
                     f"Sync successful for {model_name} {action}: {instance.id}"
                 )
@@ -168,6 +171,7 @@ class NodeSyncSignalHandler:
         """Optimized chatroom serialization"""
         return {
             "id": str(instance.id),
+            "node_id": str(instance.node.id),
             "name": instance.name,
             "description": instance.description or "",
             "room_type": instance.room_type,
@@ -201,6 +205,7 @@ class NodeSyncSignalHandler:
     def _serialize_user_session(self, instance):
         """Optimized user session serialization"""
         return {
+            "user_id": str(instance.user.id),
             "session_key": instance.session_key,
             "ip_address": instance.ip_address or "",
             "user_agent": instance.user_agent or "",
@@ -211,6 +216,7 @@ class NodeSyncSignalHandler:
         """Optimized custom user serialization"""
         return {
             "user_id": str(instance.id),
+            "username": instance.username,
             "email": instance.email,
             "is_online": instance.is_online,
             "last_seen": instance.last_seen.isoformat() if instance.last_seen else None,
