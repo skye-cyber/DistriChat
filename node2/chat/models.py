@@ -4,62 +4,6 @@ from django.utils import timezone
 import uuid
 
 
-class Node(models.Model):
-    """
-    Represents a distributed node in the system.
-    """
-
-    NODE_STATUS = [
-        ("online", "Online"),
-        ("offline", "Offline"),
-        ("maintenance", "Maintenance"),
-    ]
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100, unique=True)
-    url = models.URLField(max_length=200, help_text="Node's base URL")
-    status = models.CharField(max_length=20, choices=NODE_STATUS, default="offline")
-    load = models.FloatField(default=0.0, help_text="Current load percentage (0-100)")
-    max_rooms = models.IntegerField(
-        default=50, help_text="Maximum rooms this node can handle"
-    )
-    current_rooms = models.IntegerField(
-        default=0, help_text="Current number of active rooms"
-    )
-    last_heartbeat = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "nodes"
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.name} ({self.status})"
-
-    @property
-    def is_online(self):
-        """Check if node is currently online based on heartbeat"""
-        if not self.last_heartbeat:
-            return False
-        return (
-            timezone.now() - self.last_heartbeat
-        ).total_seconds() < 60  # 1 minute threshold
-
-    @property
-    def available_capacity(self):
-        """Calculate available room capacity"""
-        return max(0, self.max_rooms - self.current_rooms)
-
-    def update_load(self):
-        """Update node load based on current rooms"""
-        if self.max_rooms > 0:
-            self.load = (self.current_rooms / self.max_rooms) * 100
-        else:
-            self.load = 0
-        self.save()
-
-
 class ChatRoom(models.Model):
     """
     Represents a chat room that can be hosted on any node.
@@ -73,9 +17,13 @@ class ChatRoom(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
+    node = models.ForeignKey(
+        "nodes.PeerNode",
+        on_delete=models.CASCADE,
+        related_name="chat_rooms",
+    )
     description = models.TextField(blank=True, null=True)
     room_type = models.CharField(max_length=20, choices=ROOM_TYPES, default="public")
-    node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="chat_rooms")
     created_by = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name="created_rooms"
     )
@@ -95,7 +43,7 @@ class ChatRoom(models.Model):
         unique_together = ["name", "node"]
 
     def __str__(self):
-        return f"{self.name} (Node: {self.node.name})"
+        return f"{self.name} (Active: {self.is_active})"
 
     @property
     def member_count(self):
@@ -115,6 +63,23 @@ class ChatRoom(models.Model):
         """Remove a member from the room"""
         RoomMembership.objects.filter(room=self, user=user).delete()
 
+    def to_sync_dict(self):
+        """Convert chat room to sync dictionary"""
+        return {
+            "id": str(self.id),
+            "node_id": str(self.node.id),
+            "name": self.name,
+            "description": self.description,
+            "room_type": self.room_type,
+            # "node_id": str(self.node.id),
+            "created_by_id": str(self.created_by.id),
+            "is_active": self.is_active,
+            "max_members": self.max_members,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "sync_version": 1,
+        }
+
 
 class RoomMembership(models.Model):
     """
@@ -127,7 +92,7 @@ class RoomMembership(models.Model):
         ("member", "Member"),
     ]
 
-    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
+    room = models.ForeignKey("chat.ChatRoom", on_delete=models.CASCADE)
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="member")
     joined_at = models.DateTimeField(auto_now_add=True)
@@ -139,6 +104,20 @@ class RoomMembership(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.room.name}"
+
+    def to_sync_dict(self):
+        """Convert room membership to sync dictionary"""
+        return {
+            "key": f"{self.room.id}_{self.user.id}"
+            if self.room and self.id
+            else None,  # Composite key
+            "room_id": str(self.room.id),
+            "user_id": str(self.user.id),
+            "role": self.role,
+            "joined_at": self.joined_at.isoformat() if self.joined_at else None,
+            "last_read": self.last_read.isoformat() if self.last_read else None,
+            "sync_version": 1,
+        }
 
 
 class Message(models.Model):
@@ -199,6 +178,21 @@ class Message(models.Model):
         """Mark this message as read by a user"""
         MessageReadStatus.objects.get_or_create(message=self, user=user)
 
+    def to_sync_dict(self):
+        """Convert message to sync dictionary"""
+        return {
+            "id": str(self.id),
+            "room_id": str(self.room.id),
+            "sender_id": str(self.sender.id),
+            "content": self.content,
+            "message_type": self.message_type,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+            "is_edited": self.is_edited,
+            "is_deleted": self.is_deleted,
+            "sync_version": 1,  # For conflict resolution
+        }
+
 
 class MessageReadStatus(models.Model):
     """
@@ -220,90 +214,12 @@ class MessageReadStatus(models.Model):
     def __str__(self):
         return f"{self.user.username} read message at {self.read_at}"
 
-
-class UserProfile(models.Model):
-    """
-    Extended user profile with chat-specific information.
-    """
-
-    user = models.OneToOneField(
-        get_user_model(), on_delete=models.CASCADE, related_name="profile"
-    )
-
-    # Online status
-    is_online = models.BooleanField(default=False)
-    last_seen = models.DateTimeField(auto_now=True)
-
-    # get_user_model() preferences
-    color_scheme = models.CharField(
-        max_length=20,
-        default="blue",
-        choices=[
-            ("blue", "Blue"),
-            ("green", "Green"),
-            ("purple", "Purple"),
-            ("red", "Red"),
-            ("yellow", "Yellow"),
-            ("indigo", "Indigo"),
-            ("pink", "Pink"),
-        ],
-    )
-    notification_enabled = models.BooleanField(default=True)
-    sound_enabled = models.BooleanField(default=True)
-
-    # get_user_model() stats
-    total_messages_sent = models.IntegerField(default=0)
-    rooms_joined = models.IntegerField(default=0)
-
-    # Profile information
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
-    bio = models.TextField(blank=True, null=True, max_length=500)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "user_profiles"
-
-    def __str__(self):
-        return f"Profile of {self.user.username}"
-
-    @property
-    def color(self):
-        """Get user's color for UI elements"""
-        return self.color_scheme
-
-    def update_last_seen(self):
-        """Update last seen timestamp"""
-        self.last_seen = timezone.now()
-        self.save()
-
-    def increment_message_count(self):
-        """Increment total messages sent"""
-        self.total_messages_sent += 1
-        self.save()
-
-
-class NodeHeartbeat(models.Model):
-    """
-    Tracks heartbeat signals from nodes for monitoring.
-    """
-
-    node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name="heartbeats")
-    timestamp = models.DateTimeField(auto_now_add=True)
-    load = models.FloatField(help_text="Node load at heartbeat time")
-    active_connections = models.IntegerField(
-        help_text="Number of active WebSocket connections"
-    )
-    memory_usage = models.FloatField(help_text="Memory usage in MB")
-    cpu_usage = models.FloatField(help_text="CPU usage percentage")
-
-    class Meta:
-        db_table = "node_heartbeats"
-        ordering = ["-timestamp"]
-
-    def __str__(self):
-        return f"Heartbeat for {self.node.name} at {self.timestamp}"
+    def to_sync_dict(self):
+        return {
+            "message_id": str(self.message_id),
+            "user_id": self.user_id or "",
+            "read_at": self.read_at or "",
+        }
 
 
 class SystemLog(models.Model):
@@ -334,7 +250,6 @@ class SystemLog(models.Model):
     user = models.ForeignKey(
         get_user_model(), on_delete=models.SET_NULL, blank=True, null=True
     )
-    node = models.ForeignKey(Node, on_delete=models.SET_NULL, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -347,3 +262,51 @@ class SystemLog(models.Model):
 
     def __str__(self):
         return f"[{self.level.upper()}] {self.message}"
+
+
+class SyncSession(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    source_node = models.ForeignKey(
+        "nodes.PeerNode", on_delete=models.CASCADE, related_name="sync_sources"
+    )
+    target_node = models.ForeignKey(
+        "nodes.PeerNode",
+        on_delete=models.CASCADE,
+        related_name="sync_targets",
+        blank=True,
+        null=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending",
+    )
+    sync_type = models.CharField(
+        max_length=20, choices=[("full", "Full"), ("incremental", "Incremental")]
+    )
+    messages_synced = models.IntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+
+class MessageSyncLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    sync_session = models.ForeignKey(
+        SyncSession, on_delete=models.CASCADE, related_name="synced_messages"
+    )
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    action = models.CharField(
+        max_length=10,
+        choices=[("create", "Create"), ("update", "Update"), ("delete", "Delete")],
+    )
+    synced_at = models.DateTimeField(auto_now_add=True)

@@ -61,6 +61,8 @@ class ChatRoom(models.Model):
 
     def to_sync_dict(self):
         """Convert chat room to sync dictionary"""
+        print(self.id)
+
         return {
             "id": str(self.id),
             "name": self.name,
@@ -70,8 +72,8 @@ class ChatRoom(models.Model):
             "created_by_id": str(self.created_by.id),
             "is_active": self.is_active,
             "max_members": self.max_members,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "sync_version": 1,
         }
 
@@ -107,7 +109,7 @@ class RoomMembership(models.Model):
             "room_id": str(self.room.id),
             "user_id": str(self.user.id),
             "role": self.role,
-            "joined_at": self.joined_at.isoformat(),
+            "joined_at": self.joined_at.isoformat() if self.last_read else None,
             "last_read": self.last_read.isoformat() if self.last_read else None,
             "sync_version": 1,
         }
@@ -185,8 +187,8 @@ class Message(models.Model):
             "sender_id": str(self.sender.id),
             "content": self.content,
             "message_type": self.message_type,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "is_edited": self.is_edited,
             "is_deleted": self.is_deleted,
             "sync_version": 1,  # For conflict resolution

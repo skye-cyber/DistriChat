@@ -6,6 +6,7 @@
     {# disable header #}
 {% endblock %}
 <div class="h-[100vh] max-h-[100vh] w-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 overflow-y-hidden">
+  <span id="user_meta" class="hidden" data-username="{{ user.username }}" data-initials="{{ user.username|first|upper }}"></span>
   <!-- Chat Header -->
   <div class="bg-white shadow-lg border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -54,10 +55,10 @@
                   <div
                     class="w-2 h-2 bg-green-500 rounded-full pulse-animation"
                   ></div>
-                  <span>{{ online_members.count }} online</span>
+                  <span class="flex gap-1"><span id="online-display">{{ online_members.count }}</span> online</span>
                 </span>
                 <span>•</span>
-                <span>{{ room.member_count }} total members</span>
+                <span class="flex gap-1"><span id="member-display">{{ room.member_count }}</span> total members</span>
                 <span>•</span>
                 <span class="flex items-center space-x-1">
                   <svg
@@ -152,10 +153,10 @@
               />
             </svg>
           </div>
-          <h3 class="text-md md:text-xl font-bold text-gray-900 mb-1 md:mb-2">
+          <h3 class="text-[14px] md:text-lg font-semibold text-gray-900 mb-1 md:mb-2">
             Welcome to {{ room.name }}!
           </h3>
-          <p class="text-gray-600">
+          <p class="text-sm text-gray-600">
             This is the beginning of your conversation.
           </p>
         </div>
@@ -165,12 +166,12 @@
           class="message-item {% if message.sender == user %}message-sent{% else %}message-received{% endif %} animate-fade-in"
         >
           <div
-            class="flex space-x-3 max-w-3xl {% if message.sender == user %}ml-auto{% endif %}"
+            class="flex space-x-1 w-fit max-w-2xl {% if message.sender == user %}ml-auto{% endif %}"
           >
             {% if message.sender != user %}
-            <div class="flex-shrink-0">
+            <div class="flex-shrink-0 -mt-2">
               <div
-                class="w-10 h-10 bg-gradient-to-r from-{{ message.sender.color_scheme }}-500 to-{{ message.sender.color_scheme }}-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
+                class="size-5 sm:size-8 lg:size-9 bg-gradient-to-r from-{{ message.sender.color_scheme }}-500 to-{{ message.sender.color_scheme }}-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
               >
                 {{ message.sender.username|first|upper }}
               </div>
@@ -178,13 +179,13 @@
             {% endif %}
 
             <div
-              class="flex-1 {% if message.sender == user %}text-right{% endif %}"
+              class="flex-1 mt-1 {% if message.sender == user %}text-right{% endif %}"
             >
               <div
-                class="{% if message.sender == user %}bg-gradient-to-r from-blue-500 to-purple-600 text-white{% else %}bg-white border border-gray-200{% endif %} rounded-2xl px-4 py-3 shadow-sm hover:shadow-md transition-all duration-200"
+                class="{% if message.sender == user %}bg-indigo-500 text-white rounded-tr-none{% else %}bg-white border border-gray-200 rounded-tl-none{% endif %} rounded-2xl px-3 py-1 shadow-sm hover:shadow-md transition-all duration-200"
               >
                 {% if message.sender != user %}
-                <p class="text-sm font-semibold text-gray-900 mb-1">
+                <p class="text-[12px] font-semibold text-gray-900 mb-1">
                   {{ message.sender.username }}
                 </p>
                 {% endif %}
@@ -194,17 +195,17 @@
                   {{ message.content }}
                 </p>
                 <p
-                  class="text-xs {% if message.sender == user %}text-blue-100{% else %}text-gray-500{% endif %} mt-2"
+                  class="flex text-xs justify-end {% if message.sender == user %}text-blue-100{% else %}text-gray-500{% endif %} mt-0.5"
                 >
-                  {{ message.timestamp|time:"H:i" }} {% if message.is_edited %}
+                  {% if message.is_edited %}
                   <span class="italic">(edited)</span>
-                  {% endif %}
+                  {% endif %}{{ message.timestamp|time:"H:i" }}
                 </p>
               </div>
 
               <!-- Message Reactions -->
               <div
-                class="flex items-center space-x-2 mt-2 {% if message.sender == user %}justify-end{% endif %}"
+                class="flex items-center space-x-2 mt-1 {% if message.sender == user %}justify-end{% endif %}"
               >
                 <button
                   class="text-gray-400 hover:text-gray-600 transition-colors text-sm"
@@ -223,7 +224,7 @@
                 </button>
                 <button
                   onclick="showMessageActions('{{ message.id }}')"
-                  class="text-gray-400 hover:text-gray-600 transition-colors text-sm"
+                  class="text-gray-500 hover:text-gray-600 transition-colors text-sm"
                 >
                   ⋮
                 </button>
@@ -231,9 +232,9 @@
             </div>
 
             {% if message.sender == user %}
-            <div class="flex-shrink-0">
+            <div class="flex-shrink-0 -mt-2">
               <div
-                class="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
+                class="size-5 sm:size-8 lg:size-9 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
               >
                 {{ message.sender.username|first|upper }}
               </div>
@@ -277,7 +278,7 @@
               id="message-input"
               placeholder="Type your message..."
               rows="1"
-              class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 max-h-32"
+              class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline outline-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 max-h-32"
               oninput="autoResize(this); handleTyping()"
             ></textarea>
 

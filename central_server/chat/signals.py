@@ -3,17 +3,20 @@ import logging
 import requests
 from django.conf import settings
 from django.utils import timezone
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from users.models import UserProfile
 from django.db import transaction
 from nodes.models import Node
+from chat.models import ChatRoom
 
 logger = logging.getLogger(__name__)
 
 # Thread-local storage for tracking sync origins
 _sync_origin_local = threading.local()
+
+chatRoom_data = None
 
 
 @receiver(post_save, sender=get_user_model())
@@ -67,26 +70,33 @@ class CentralSyncSignalHandler:
             nodes = Node.objects.filter(status="online")
             if exclude_node_id:
                 nodes = nodes.exclude(id=exclude_node_id)
+            if not nodes:
+                print("\033[1;31mAll Nodes Offline, not syncing\033[0m")
             return nodes
         except Exception as e:
             logger.error(f"Error fetching active nodes: {e}")
             return []
 
-    def send_sync_to_nodes(self, model_name, instance, action, originating_node_id):
+    def send_sync_to_nodes(
+        self, model_name, instance, action, originating_node_id, data=None
+    ):
         """Send sync updates to all other nodes except the originating one"""
+        logger.debug(
+            f"\033[1mSend sync to:\033[0m {model_name}-NODE-{Node.objects.get(id=originating_node_id).name}"
+        )
         if not self.is_central_server:
             return
 
         # Use thread pool for async execution
         thread = threading.Thread(
             target=self._send_sync_to_nodes_async,
-            args=(model_name, instance, action, originating_node_id),
+            args=(model_name, instance, action, originating_node_id, data),
             daemon=True,
         )
         thread.start()
 
     def _send_sync_to_nodes_async(
-        self, model_name, instance, action, originating_node_id
+        self, model_name, instance, action, originating_node_id, data=None
     ):
         """Async implementation of node sync"""
         try:
@@ -99,7 +109,7 @@ class CentralSyncSignalHandler:
             sync_data = {
                 "model": model_name,
                 "action": action,
-                "data": self.serialize_instance(instance),
+                "data": self.serialize_instance(instance, data),
                 "timestamp": timezone.now().isoformat(),
                 # Track where it came from
                 "origin_node_id": str(originating_node_id),
@@ -113,15 +123,22 @@ class CentralSyncSignalHandler:
                 if not self.should_sync_to_node(node.id, originating_node_id):
                     continue
 
+                q_origin_node = Node.objects.filter(id=originating_node_id)
+                if q_origin_node.exists():
+                    origin_api_key = q_origin_node.first().api_key
+                else:
+                    logger.error("Could not located originating node")
+                    return
                 try:
                     response = requests.post(
                         # Node's sync endpoint
-                        f"{node.url}/api/sync/receive/",
+                        f"{node.url}/nodes/api/sync/receive/",
                         json=sync_data,
                         headers={
                             "X-Central-API-Key": getattr(
                                 settings, "CENTRAL_API_KEY", ""
                             ),
+                            "X-Origin-Node-API-Key": origin_api_key,
                             "Content-Type": "application/json",
                         },
                         timeout=5,  # Shorter timeout for nodes
@@ -132,7 +149,7 @@ class CentralSyncSignalHandler:
                         logger.debug(f"Sync successful to node {node.name}")
                     else:
                         logger.warning(
-                            f"Sync failed to node {node.name}: {response.status_code}"
+                            f"Sync failed to node {node.name}: {response.status_code}-url:{node.url}/nodes/api/sync/receive/"
                         )
 
                 except requests.exceptions.Timeout:
@@ -145,12 +162,15 @@ class CentralSyncSignalHandler:
             logger.info(f"Sync completed: {successful_syncs}/{total_nodes} nodes")
 
         except Exception as e:
+            raise
             logger.error(f"Error in node sync process: {e}")
 
-    def serialize_instance(self, instance):
+    def serialize_instance(self, instance, data=None):
         """Serialize model instance for sync (same as node version)"""
+        if data and isinstance(data, dict):
+            return data
         if hasattr(instance, "to_sync_dict"):
-            return instance.to_sync_dict()
+            return instance.to_sync_dict
 
         data = {"id": str(instance.id)}
         model_class = type(instance)
@@ -177,8 +197,8 @@ class CentralSyncSignalHandler:
             "sender_id": str(instance.sender_id),
             "content": instance.content,
             "message_type": instance.message_type,
-            "created_at": instance.created_at.isoformat(),
-            "updated_at": instance.updated_at.isoformat(),
+            "created_at": instance.created_at,
+            "updated_at": instance.updated_at,
             "is_edited": instance.is_edited,
             "is_deleted": instance.is_deleted,
         }
@@ -192,7 +212,7 @@ class CentralSyncSignalHandler:
             "created_by_id": str(instance.created_by_id),
             "is_active": instance.is_active,
             "max_members": instance.max_members,
-            "created_at": instance.created_at.isoformat(),
+            "created_at": instance.created_at,
         }
 
     def _serialize_room_membership(self, instance):
@@ -201,14 +221,14 @@ class CentralSyncSignalHandler:
             "room_id": str(instance.room_id),
             "user_id": str(instance.user_id),
             "role": instance.role,
-            "joined_at": instance.joined_at.isoformat(),
+            "joined_at": instance.joined_at,
         }
 
     def _serialize_message_read_status(self, instance):
         return {
             "message_id": str(instance.message_id),
             "user_id": str(instance.user_id),
-            "read_at": instance.read_at.isoformat(),
+            "read_at": instance.read_at,
         }
 
     def _serialize_user_session(self, instance):
@@ -217,7 +237,7 @@ class CentralSyncSignalHandler:
             "session_key": instance.session_key,
             "ip_address": instance.ip_address or "",
             "user_agent": instance.user_agent or "",
-            "last_activity": instance.last_activity.isoformat(),
+            "last_activity": instance.last_activity,
         }
 
     def _serialize_custom_user(self, instance):
@@ -226,11 +246,13 @@ class CentralSyncSignalHandler:
             "username": instance.username,
             "email": instance.email,
             "is_online": instance.is_online,
-            "last_seen": instance.last_seen.isoformat() if instance.last_seen else None,
+            "last_seen": instance.last_seen,
             "avatar": str(instance.avatar) if instance.avatar else None,
             "bio": instance.bio or "",
+            "total_messages_sent": instance.total_messages_sent or 0,
             "notification_enabled": instance.notification_enabled,
             "sound_enabled": instance.sound_enabled,
+            "rooms_joined": instance.rooms_joined or 0,
         }
 
 
@@ -242,10 +264,11 @@ def get_central_sync_handler():
     global _central_sync_handler
     if _central_sync_handler is None:
         _central_sync_handler = CentralSyncSignalHandler()
+
     return _central_sync_handler
 
 
-def safe_central_sync(instance, model_name, action, originating_node_id):
+def safe_central_sync(instance, model_name, action, originating_node_id, data=None):
     """
     Safe wrapper for central sync that prevents loops
     """
@@ -253,7 +276,7 @@ def safe_central_sync(instance, model_name, action, originating_node_id):
         handler = get_central_sync_handler()
         if handler.is_central_server and originating_node_id:
             handler.send_sync_to_nodes(
-                model_name, instance, action, originating_node_id
+                model_name, instance, action, originating_node_id, data
             )
     except Exception as e:
         logger.error(f"Central sync error for {model_name} {action}: {e}")
@@ -265,6 +288,7 @@ def central_message_saved(sender, instance, created, **kwargs):
     """Central: Sync message to other nodes"""
     # Check if this save came from a sync operation
     sync_origin = get_central_sync_handler().get_sync_origin()
+    print("Messages:", sync_origin)
     if sync_origin:
         # This save came from a node sync, so propagate to other nodes
         safe_central_sync(
@@ -275,6 +299,7 @@ def central_message_saved(sender, instance, created, **kwargs):
 @receiver(post_save, sender="chat.ChatRoom")
 def central_chatroom_saved(sender, instance, created, **kwargs):
     """Central: Sync chatroom to other nodes"""
+    print("GOT CHATROOM CREATION UPDATE SIGNAL")
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
         safe_central_sync(
@@ -316,34 +341,45 @@ def central_message_status_saved(sender, instance, created, **kwargs):
 
 
 # Delete handlers
-@receiver(post_delete, sender="chat.Message")
+@receiver(pre_delete, sender="chat.Message")
 def central_message_deleted(sender, instance, **kwargs):
     """Central: Sync message deletion to other nodes"""
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
-        safe_central_sync(instance, "message", "delete", sync_origin)
+        safe_central_sync(
+            instance, "message", "delete", sync_origin, data=instance.to_sync_dict()
+        )
 
 
-@receiver(post_delete, sender="chat.ChatRoom")
+@receiver(pre_delete, sender="chat.ChatRoom")
 def central_chatroom_deleted(sender, instance, **kwargs):
     """Central: Sync chatroom deletion to other nodes"""
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
-        safe_central_sync(instance, "chatroom", "delete", sync_origin)
+        safe_central_sync(
+            instance, "chatroom", "delete", sync_origin, data=instance.to_sync_dict()
+        )
 
 
-@receiver(post_delete, sender="chat.RoomMembership")
+@receiver(pre_delete, sender="chat.RoomMembership")
 def central_room_membership_deleted(sender, instance, **kwargs):
     """Central: Sync membership deletion to other nodes"""
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
-        safe_central_sync(instance, "roommembership", "delete", sync_origin)
+        safe_central_sync(
+            instance,
+            "roommembership",
+            "delete",
+            sync_origin,
+            data=instance.to_sync_dict(),
+        )
 
 
-@receiver(post_delete, sender="users.CustomUser")
+@receiver(pre_delete, sender="users.CustomUser")
 def central_user_deleted(sender, instance, **kwargs):
     """Central: Sync user deletion to other nodes"""
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
-        safe_central_sync(instance, "user", "delete", sync_origin)
-        safe_central_sync(instance, "user", "delete", sync_origin)
+        safe_central_sync(
+            instance, "user", "delete", sync_origin, data=instance.to_sync_dict()
+        )

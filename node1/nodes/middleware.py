@@ -1,65 +1,45 @@
 import time
-import threading
 import requests
 from django.conf import settings
 from django.utils import timezone
-import logging
 from nodes.models import PeerNode
+import logging
+from django.http import JsonResponse
+import threading
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class NodeRegistrationMiddlewareX:
+class Util:
+    @staticmethod
+    def schema(data: Any, model: str) -> dict:
+        return {
+            "action": "create",
+            "data": data,
+            "model": model,
+            "source_node": {
+                "name": getattr(settings, "NODE_NAME", "CENTRAL_SERVER"),
+                "url": getattr(settings, "NODE_URL", ""),
+            },
+        }
+
+
+dict_schema = Util.schema
+
+
+# API key authentication middleware
+class NodeAuthenticationMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # If this is a node, register with central server on startup
-        if hasattr(settings, "IS_NODE") and settings.IS_NODE:
-            self.register_with_central_server()
+        if request.path.startswith("/nodes/sync/"):
+            api_key = request.headers.get("X-Node-API-Key")
+            if not self.validate_api_key(api_key):
+                return JsonResponse({"error": "Invalid API key"}, status=401)
 
-        response = self.get_response(request)
-        return response
-
-    def register_with_central_server(self):
-        """Register this node with the central server."""
-        try:
-            # Check if we're already registered
-            from .models import NodeMetadata
-
-            if NodeMetadata.objects.filter(
-                url=settings.NODE_URL, name=settings.NODE_NAME
-            ).exists():
-                return
-
-            # Register with central server
-            registration_data = {
-                "node_name": settings.NODE_NAME,
-                "node_url": settings.NODE_URL,
-                "admin_email": "admin@chatserver.local",
-                "description": f"Local development node - {settings.NODE_NAME}",
-                "max_rooms_capacity": settings.MAX_ROOMS,
-                "api_key": settings.NODE_API_KEY,
-            }
-
-            response = requests.post(
-                f"{settings.CENTRAL_SERVER_URL}/nodes/register/",
-                json=registration_data,
-                timeout=10,
-            )
-
-            if response.status_code == 200:
-                logger.info(f"Node {settings.NODE_NAME} registered with central server")
-
-                # Auto-approve for development
-                registration_id = response.json().get("registration_id")
-                # if registration_id:
-                # self.auto_approve_node(registration_id)
-            else:
-                logger.error(f"Failed to register node: {response.text}")
-
-        except Exception as e:
-            logger.error(f"Node registration error: {e}")
+        return self.get_response(request)
 
 
 class NodeRegistrationMiddleware:
@@ -95,7 +75,7 @@ class NodeRegistrationMiddleware:
                     )
                     break
                 else:
-                    logger.warning(f"⚠️ Registration failed. Retrying in 10s...")
+                    logger.warning("⚠️ Registration failed. Retrying in 10s...")
             except Exception as e:
                 logger.error(f"🔥 Node registration exception: {e}")
 
@@ -144,6 +124,151 @@ class NodeRegistrationMiddleware:
         except requests.RequestException as e:
             logger.error(f"Network error during registration: {e}")
             return False
+
+
+class NodePeerSyncMiddleware:
+    """Middleware for node peer synchronization in a distributed system."""
+
+    # Class-level cache to track sync status
+    _sync_initiated = False
+    _sync_lock = threading.Lock()
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Initialize peer sync only once per process
+        if not self._sync_initiated and not getattr(settings, "IS_NODE", False):
+            with self._sync_lock:
+                if not self._sync_initiated:  # Double-check locking
+                    self._sync_initiated = True
+                    # Run sync in background thread to avoid blocking request
+                    threading.Thread(
+                        target=self.run_peer_sync, daemon=True, name="NodePeerSync-Init"
+                    ).start()
+
+        response = self.get_response(request)
+        return response
+
+    def run_peer_sync(self):
+        """Run peer synchronization with central server - all nodes in one call."""
+        try:
+            from .models import Node
+
+            nodes = Node.objects.all()
+            if not nodes:
+                logger.warning("No nodes found for peer synchronization")
+                return
+
+            # Prepare all nodes data for single API call
+            nodes_data = dict_schema([node.to_dict for node in nodes], "nodes")
+
+            for node in nodes_data["nodes"]:
+                target_url = f"{node['url']}/nodes/api/peer/init/"
+                SyncHandler(nodes_data, target_url, "node").sync()
+
+        except Exception as e:
+            logger.error(f"Peer sync initialization failed: {e}")
+
+
+class NodeUserAutoSyncMiddleware:
+    """Middleware for node peer synchronization in a distributed system."""
+
+    # Class-level cache to track sync status
+    _sync_initiated = False
+    _sync_lock = threading.Lock()
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Initialize peer sync only once per process
+        if not self._sync_initiated and not getattr(settings, "IS_NODE", False):
+            with self._sync_lock:
+                if not self._sync_initiated:  # Double-check locking
+                    self._sync_initiated = True
+                    # Run sync in background thread to avoid blocking request
+                    threading.Thread(
+                        target=self.run_peer_sync, daemon=True, name="UserSync-Init"
+                    ).start()
+
+        response = self.get_response(request)
+        return response
+
+    def run_peer_sync(self):
+        """Run peer synchronization with central server - all nodes in one call."""
+        try:
+            from django.contrib.auth import get_user_model
+            from nodes.models import Node
+
+            User = get_user_model()
+
+            users_data = dict_schema(
+                [user.to_sync_dict() for user in User.objects.all()], "user"
+            )
+
+            if not users_data:
+                logger.warning("No nodes found for peer synchronization")
+                return
+
+            # Prepare all nodes data for single API call
+            user_sync_data = dict_schema(users_data, "user")
+
+            for url in Node.objects.value_list("url"):
+                target_url = f"{url[0]}/nodes/api/sync/receive/"
+                SyncHandler(user_sync_data, target_url, "user").sync()
+
+        except Exception as e:
+            logger.error(f"User sync initialization failed: {e}")
+
+
+class NodeSessionAutoSyncMiddleware:
+    """Middleware for node peer synchronization in a distributed system."""
+
+    # Class-level cache to track sync status
+    _sync_initiated = False
+    _sync_lock = threading.Lock()
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Initialize peer sync only once per process
+        if not self._sync_initiated and not getattr(settings, "IS_NODE", False):
+            with self._sync_lock:
+                if not self._sync_initiated:  # Double-check locking
+                    self._sync_initiated = True
+                    # Run sync in background thread to avoid blocking request
+                    threading.Thread(
+                        target=self.run_peer_sync,
+                        daemon=True,
+                        name="UserSessionSync-Init",
+                    ).start()
+
+        response = self.get_response(request)
+        return response
+
+    def run_peer_sync(self):
+        """Run peer synchronization with central server - all nodes in one call."""
+        try:
+            from nodes.models import Node
+            from users.models import UserSession
+
+            users_data = [session.to_dict for session in UserSession.objects.all()]
+
+            if not users_data:
+                logger.warning("No nodes found for peer synchronization")
+                return
+
+            # Prepare all nodes data for single API call
+            user_sync_data = dict_schema(users_data, "session")
+
+            for url in Node.objects.value_list("url"):
+                target_url = f"{url[0]}/nodes/api/sync/receive/"
+                SyncHandler(user_sync_data, target_url, "session").sync()
+
+        except Exception as e:
+            logger.error(f"Session sync initialization failed: {e}")
 
 
 class NodeHeartbeatMiddleware:
@@ -232,3 +357,44 @@ class NodeHeartbeatMiddleware:
             logger.warning("⏰ Heartbeat timeout")
         except Exception as e:
             logger.error(f"💥 Heartbeat error: {e}")
+
+
+class SyncHandler:
+    def __init__(self, data, url, target, auth_key=None):
+        self.target = target
+        self.data = data
+        self.url = url
+        self.auth_key = auth_key
+
+    def sync(self):
+        """Sync all nodes with the central server in a single API call."""
+        try:
+            logger.info(f"Syncing {self.target} to: {self.url}")
+
+            response = requests.post(
+                self.url,
+                json=self.data,
+                headers={
+                    "X-ORIGIN": "CENTRAL_SERVER",
+                    "X-AUTH": "BYPASS_AUTH",
+                    "X-Origin-Node-Api-Key": self.auth_key,
+                    "Content-Type": "application/json",
+                },
+                timeout=10,  # Increased timeout for bulk operation
+            )
+
+            if response.status_code == 200:
+                logger.info(f"{self.target.title()} sync successful")
+                # self._handle_bulk_sync_response(response, self.data)
+                return True
+            else:
+                logger.error(
+                    f"{self.target} sync failed: HTTP {response.status_code} - {response.text[:50]}"
+                )
+
+        except requests.exceptions.Timeout:
+            logger.error(f"{self.target.title()} sync timeout for {self.url}")
+        except requests.exceptions.ConnectionError:
+            logger.error(f"Connection failed for target node server: {self.url}")
+        except Exception as e:
+            logger.error(f"Unexpected error during  {self.target} sync: {e}")

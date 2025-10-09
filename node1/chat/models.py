@@ -75,8 +75,8 @@ class ChatRoom(models.Model):
             "created_by_id": str(self.created_by.id),
             "is_active": self.is_active,
             "max_members": self.max_members,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "sync_version": 1,
         }
 
@@ -108,11 +108,13 @@ class RoomMembership(models.Model):
     def to_sync_dict(self):
         """Convert room membership to sync dictionary"""
         return {
-            "id": f"{self.room.id}_{self.user.id}",  # Composite key
+            "key": f"{self.room.id}_{self.user.id}"
+            if self.room and self.id
+            else None,  # Composite key
             "room_id": str(self.room.id),
             "user_id": str(self.user.id),
             "role": self.role,
-            "joined_at": self.joined_at.isoformat(),
+            "joined_at": self.joined_at.isoformat() if self.joined_at else None,
             "last_read": self.last_read.isoformat() if self.last_read else None,
             "sync_version": 1,
         }
@@ -184,8 +186,8 @@ class Message(models.Model):
             "sender_id": str(self.sender.id),
             "content": self.content,
             "message_type": self.message_type,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "is_edited": self.is_edited,
             "is_deleted": self.is_deleted,
             "sync_version": 1,  # For conflict resolution
@@ -216,7 +218,7 @@ class MessageReadStatus(models.Model):
         return {
             "message_id": str(self.message_id),
             "user_id": self.user_id or "",
-            "read_at": self.read_at or "",
+            "read_at": self.read_at.isoformat() if self.read_at else "",
         }
 
 
@@ -260,3 +262,51 @@ class SystemLog(models.Model):
 
     def __str__(self):
         return f"[{self.level.upper()}] {self.message}"
+
+
+class SyncSession(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    source_node = models.ForeignKey(
+        "nodes.PeerNode", on_delete=models.CASCADE, related_name="sync_sources"
+    )
+    target_node = models.ForeignKey(
+        "nodes.PeerNode",
+        on_delete=models.CASCADE,
+        related_name="sync_targets",
+        blank=True,
+        null=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending",
+    )
+    sync_type = models.CharField(
+        max_length=20, choices=[("full", "Full"), ("incremental", "Incremental")]
+    )
+    messages_synced = models.IntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+
+class MessageSyncLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    sync_session = models.ForeignKey(
+        SyncSession, on_delete=models.CASCADE, related_name="synced_messages"
+    )
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    action = models.CharField(
+        max_length=10,
+        choices=[("create", "Create"), ("update", "Update"), ("delete", "Delete")],
+    )
+    synced_at = models.DateTimeField(auto_now_add=True)

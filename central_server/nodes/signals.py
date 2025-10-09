@@ -16,8 +16,8 @@ def sync_node_metadata(sender, instance, created, **kwargs):
         logger.warning("Skipping metadata sync: Node URL missing.")
         return
 
-    data = instance.to_dict()
-    api_url = f"{instance.url.rstrip('/')}/nodes/api/peer/meta/set/"
+    data = instance.to_dict
+    api_url = f"{instance.url.rstrip('/')}/nodes/api/meta/set/"
 
     # Defer API call until after transaction is fully committed
     transaction.on_commit(lambda: _meta_update_handler(api_url, data, created, False))
@@ -91,7 +91,7 @@ def _meta_update_handler(api_url, data, created=False, deleted=False):
         else:
             logger.error(
                 f"{'Meta+PeerNode' if not deleted else "PeerNode"} {'creation' if created else 'deleted' if deleted else 'update'} failed "
-                f"({response.status_code}): {response.text}"
+                f"({response.status_code}): {api_url}- {response.text[:30]}"
             )
             return None
 

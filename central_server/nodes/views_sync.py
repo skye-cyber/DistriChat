@@ -20,6 +20,7 @@ from nodes.models import Node
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from chat.signals import get_central_sync_handler
+from nodes.utils import fromiso_timezone_aware
 
 User = get_user_model()
 
@@ -82,7 +83,9 @@ class SyncReceiverAPI(View):
         try:
             data = json.loads(request.body)
             handler = get_central_sync_handler()
-
+            print(
+                f"\033[1mRecv:\033[0m Action: {data['action']} \033[1mModel:\033[0m {data['model']} \033[1mFromNode:\033[0m {Node.objects.filter(id=data['origin_node_id']).first()}"
+            )
             # Set the origin before saving
             node_id = data.get("origin_node_id")
             handler.set_sync_origin(node_id)
@@ -146,7 +149,6 @@ class SyncReceiverAPI(View):
                 status=500,
             )
         except Exception as e:
-            handler.clear_sync_origin()
             logger.error(f"Sync receiver error: {e}")
             return JsonResponse({"error": str(e)}, status=500)
 
@@ -199,7 +201,6 @@ class SyncReceiverAPI(View):
     def create_or_update_message(self, data, node, syncs):
         """Create or update message in central server"""
         try:
-            print(data["room_id"])
             # Get related objects
             q_room = ChatRoom.objects.filter(id=data["room_id"])
             if not q_room.exists():
@@ -217,8 +218,8 @@ class SyncReceiverAPI(View):
                     "sender": sender,
                     "content": data["content"],
                     "message_type": data.get("message_type", "text"),
-                    "created_at": data["created_at"],
-                    "updated_at": data["updated_at"],
+                    "created_at": fromiso_timezone_aware(data["created_at"]),
+                    "updated_at": fromiso_timezone_aware(data["updated_at"]),
                     "is_edited": data.get("is_edited", False),
                     "is_deleted": data.get("is_deleted", False),
                 },
@@ -255,15 +256,16 @@ class SyncReceiverAPI(View):
         data: sync request data type->dict
         syncs: Sync Session"""
         try:
-            message = Message.objects.get(id=data["id"])
-            message.delete()
+            q_message = Message.objects.filter(id=data["id"])
+            if q_message.exists():
+                q_message.first().delete()
 
-            MessageSyncLog.objects.create(
-                sync_session=syncs,
-                message=message,
-                action="delete",
-            )
-            logger.info(f"Deleted message {data['id']}")
+                MessageSyncLog.objects.create(
+                    sync_session=syncs,
+                    message=q_message.first(),
+                    action="delete",
+                )
+                logger.info(f"Deleted message {data['id']}")
             return True
         except Message.DoesNotExist:
             syncs.status = "failed"
@@ -300,8 +302,10 @@ class SyncReceiverAPI(View):
                     "created_by": created_by,
                     "is_active": data.get("is_active", True),
                     "max_members": data.get("max_members", 100),
-                    "created_at": data["created_at"],
-                    "updated_at": data.get("updated_at", data["created_at"]),
+                    "created_at": fromiso_timezone_aware(data["created_at"]),
+                    "updated_at": fromiso_timezone_aware(
+                        data.get("updated_at", data["created_at"])
+                    ),
                 },
             )
 
@@ -320,9 +324,11 @@ class SyncReceiverAPI(View):
     def delete_chatroom(self, data) -> bool:
         """Delete chatroom in central server"""
         try:
-            chatroom = ChatRoom.objects.get(id=data["id"])
-            chatroom.delete()
-            logger.info(f"Deleted chatroom {data['id']}")
+            q_chatroom = ChatRoom.objects.filter(id=data["id"])
+            if q_chatroom.exists():
+                room = q_chatroom.first()
+                room.delete()
+                logger.info(f"Deleted chatroom {data['id']}")
             return True
         except ChatRoom.DoesNotExist:
             logger.warning(f"ChatRoom {data['id']} not found for deletion")
@@ -350,8 +356,10 @@ class SyncReceiverAPI(View):
                 user=user,
                 defaults={
                     "role": data.get("role", "member"),
-                    "joined_at": data["joined_at"],
-                    "last_read": data.get("last_read") or data["joined_at"],
+                    "joined_at": fromiso_timezone_aware(data["joined_at"]),
+                    "last_read": fromiso_timezone_aware(
+                        data.get("last_read", data["joined_at"])
+                    ),
                 },
             )
 
@@ -373,15 +381,16 @@ class SyncReceiverAPI(View):
             room = ChatRoom.objects.get(id=data["room_id"])
             user = User.objects.get(id=data["user_id"])
 
-            membership = RoomMembership.objects.get(room=room, user=user)
-            membership.delete()
-            logger.info(
-                f"Deleted membership for user {user.username} in room {room.name}"
-            )
+            q_membership = RoomMembership.objects.filter(room=room, user=user)
+            if q_membership.exists():
+                q_membership.first().delete()
+                logger.info(
+                    f"Deleted membership for user {user.username} in room {room.name}"
+                )
             return True
 
         except (ChatRoom.DoesNotExist, User.DoesNotExist, RoomMembership.DoesNotExist):
-            logger.warning(f"RoomMembership not found for deletion: {data}")
+            logger.warning(f"RoomMembership not found for deletion: {data['room_id']}")
             return True
 
     def process_messagereadstatus_sync(self, action, data, node):
@@ -409,7 +418,7 @@ class SyncReceiverAPI(View):
                 defaults={
                     "message": message,
                     "user": user,
-                    "read_at": data["read_at"],
+                    "read_at": fromiso_timezone_aware(data["read_at"]),
                 },
             )
 
@@ -436,10 +445,12 @@ class SyncReceiverAPI(View):
 
             message = Message.objects.get(id=data["message_id"])
 
-            messageStatus = MessageReadStatus.objects.get(message=message, user=user)
-
-            messageStatus.delete()
-            logger.info(f"Deleted message {data['message_id']}")
+            q_messageStatus = MessageReadStatus.objects.filter(
+                message=message, user=user
+            )
+            if q_messageStatus.exists():
+                q_messageStatus.first().delete()
+                logger.info(f"Deleted message {data['message_id']}")
             return True
         except MessageReadStatus.DoesNotExist:
             logger.warning(
@@ -515,7 +526,7 @@ class SyncReceiverAPI(View):
                     "username": data["username"],
                     "email": data["email"],
                     "is_online": data["is_online"],
-                    "last_seen": data["last_seen"],
+                    "last_seen": fromiso_timezone_aware(data["last_seen"]),
                     "avatar": data["avatar"],
                     "bio": data["bio"],
                     "notification_enabled": data["notification_enabled"],
@@ -538,10 +549,10 @@ class SyncReceiverAPI(View):
         """Delete message in central server"""
         try:
             # Get related objects
-            user = User.objects.get(id=data["user_id"])
-
-            user.delete()
-            logger.info(f"Deleted user {data['user_id']}")
+            q_user = User.objects.filter(id=data["user_id"])
+            if q_user.exists():
+                q_user.first().delete()
+                logger.info(f"Deleted user {data['user_id']}")
             return True
         except User.DoesNotExist:
             logger.warning(f"User {data['user_id']} not found for deletion")

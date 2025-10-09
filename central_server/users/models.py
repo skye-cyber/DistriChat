@@ -83,6 +83,23 @@ class CustomUser(AbstractUser):
             "rooms_joined": instance.rooms_joined,
         }
 
+    @property
+    def to_sync_dict(self):
+        """Optimized custom user sync"""
+        return {
+            "user_id": str(self.id),
+            "username": self.username,
+            "email": self.email,
+            "is_online": self.is_online,
+            "last_seen": self.last_seen.isoformat() if self.last_seen else None,
+            "avatar": str(self.avatar) if self.avatar else None,
+            "bio": self.bio or "",
+            "notification_enabled": self.notification_enabled,
+            "sound_enabled": self.sound_enabled,
+            "total_messages_sent": self.total_messages_sent,
+            "rooms_joined": self.rooms_joined,
+        }
+
 
 class UserSession(models.Model):
     """

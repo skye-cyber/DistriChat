@@ -98,6 +98,7 @@ class Node(models.Model):
         cache_key = f"node_metrics_{self.id}"
         return cache.get(cache_key, {})
 
+    @property
     def to_dict(self):
         return {
             "url": self.url,
@@ -108,8 +109,10 @@ class Node(models.Model):
             "max_rooms": self.max_rooms,
             "load": self.load,
             "status": self.status,
-            "last_heartbeat": str(self.last_heartbeat) if self.last_heartbeat else None,
-            "last_sync": str(self.last_sync) if self.last_sync else None,
+            "last_heartbeat": self.last_heartbeat.isoformat()
+            if self.last_heartbeat
+            else None,
+            "last_sync": self.last_sync.isoformat() if self.last_sync else None,
         }
 
 

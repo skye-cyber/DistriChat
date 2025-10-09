@@ -116,6 +116,8 @@ class PeerNode(models.Model):
             "max_rooms": self.max_rooms,
             "load": self.load,
             "status": self.status,
-            "last_heartbeat": self.last_heartbeat,
-            "last_sync": self.last_sync,
+            "last_heartbeat": self.last_heartbeat.isoformat()
+            if self.last_heartbeat
+            else None,
+            "last_sync": self.last_sync.isoformat() if self.last_sync else None,
         }

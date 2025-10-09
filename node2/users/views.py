@@ -1,10 +1,13 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, get_backends
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from .models import UserActivity
+# from .models import CustomUser
+
+#  CustomUser.objects.all().delete()
 
 
 @csrf_protect
@@ -26,7 +29,16 @@ def register_view(request):
                 ip_address=get_client_ip(request),
             )
 
-            login(request, user)
+            # Specify backend explicitly
+            backend = get_backends()[0]  # Use the first backend (usually ModelBackend)
+            login(
+                request,
+                user,
+                backend=backend.__class__.__module__ + "." + backend.__class__.__name__,
+            )
+            # simpler
+            # login(request, user, backend="users.backends.EmailBackend")
+
             messages.success(request, "Registration successful! Welcome to DistriChat.")
             return redirect("chat:dashboard")
     else:

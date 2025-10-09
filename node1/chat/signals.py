@@ -5,6 +5,8 @@ from django.conf import settings
 import requests
 import logging
 import threading
+from nodes.utils import handler
+from nodes.models import PeerNode
 
 logger = logging.getLogger(__name__)
 
@@ -68,16 +70,30 @@ class NodeSyncSignalHandler:
 
     def should_sync(self):
         """Check if sync should be performed"""
+        origin_id, origin_name = handler.get_sync_origin()
+        q_origin_node = PeerNode.objects.filter(id=origin_id)
+
+        origin = None
+        same_origin = False
+        if q_origin_node.exists():
+            origin = q_origin_node.first()
+            same_origin = origin.name != settings.NODE_NAME
+
+        logger.debug(
+            f"\033[1mShould broadcast sync:\033[0m Same origin:\033[35m {same_origin}\033[0m"
+        )
         return (
             self.is_node
             and self.central_server_url
             and self.node_api_key
             and self.node_id
+            and (not same_origin and origin_name != "CENTRAL_SERVER")
         )
 
     def send_sync_request(self, model_name, instance, action):
         """Send sync request to central server with rate limiting"""
         if not self.should_sync():
+            logger.debug("\033[36mNot Syncing\033[0m")
             return
 
         # Use thread pool for async execution to avoid blocking
@@ -127,6 +143,7 @@ class NodeSyncSignalHandler:
         except requests.exceptions.ConnectionError:
             logger.warning(f"Connection error during sync for {model_name} {action}")
         except Exception as e:
+            raise
             logger.error(f"Sync error for {model_name} {action}: {e}")
 
     def serialize_instance(self, instance):
@@ -187,6 +204,7 @@ class NodeSyncSignalHandler:
     def _serialize_room_membership(self, instance):
         """Optimized room membership serialization"""
         return {
+            "key": f"{instance.room.id}_{instance.user.id}",
             "id": str(instance.id),
             "room_id": str(instance.room_id),
             "user_id": str(instance.user_id),
@@ -251,6 +269,7 @@ def safe_sync_signal(instance, model_name, action, created=None):
         if handler.should_sync():
             handler.send_sync_request(model_name, instance, action)
     except Exception as e:
+        raise
         logger.error(f"Safe sync signal error for {model_name} {action}: {e}")
 
 

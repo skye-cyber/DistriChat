@@ -80,6 +80,27 @@ def save_meta(request):
         return JsonResponse({"status": "error", "error": str(e)}, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_peers(request):
+    try:
+        data = json.loads(request.body)
+        nodes = data["data"]
+        for node in nodes:
+            if not node["name"] == settings.NODE_NAME:
+                # print("CREATING PEER", node["name"])
+                create_update_peer(node)
+        return JsonResponse({"status": "success", "peers": len(nodes) - 1}, status=200)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"status": "error", "error": "Invalid JSON data"}, status=400
+        )
+    except Exception as e:
+        raise
+        logger.exception("Unexpected error in create peers")
+        return JsonResponse({"status": "error", "error": str(e)}, status=500)
+
+
 def create_update_peer(data):
     try:
         with transaction.atomic():

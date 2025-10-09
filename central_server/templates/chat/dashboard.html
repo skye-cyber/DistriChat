@@ -79,7 +79,7 @@
                         >
                           Join<span class="hidden sm:flex">Room</span>
                         </a>
-                        {% if user.is_staff %}
+                        {% if user.is_admin or user == room.created_by %}
                         <button
                           onclick="deleteRoom('{{ room.id }}', '{{ room.name }}')"
                           class="w-10 h-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110"

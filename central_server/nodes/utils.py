@@ -1,8 +1,28 @@
 import logging
 from django.http import JsonResponse
 from nodes.models import Node
+from django.utils import timezone
+from datetime import datetime
+import threading
+
 
 logger = logging.getLogger(__name__)
+
+# Thread-local storage for tracking sync origins
+_sync_origin_local = threading.local()
+
+
+def fromiso_timezone_aware(iso_string: str):
+    if not isinstance(iso_string, str):
+        return iso_string
+    try:
+        dt_object = datetime.fromisoformat(iso_string)
+        if not timezone.is_aware(dt_object):
+            dt_object = timezone.make_aware(dt_object)
+        return dt_object
+    except (ValueError, TypeError) as e:
+        logger.error(f"Failed to parse datetime from ISO string: {iso_string} - {e}")
+        return None
 
 
 def authenticate_node(request, node_id):

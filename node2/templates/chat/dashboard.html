@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <div class="min-h-screen bg-gray-50">
   <!-- Header -->
   <div class="bg-white shadow">
@@ -68,7 +68,7 @@
                         >
                           Join<span class="hidden sm:flex">Room</span>
                         </a>
-                        {% if user.is_staff %}
+                        {% if user.is_admin or user == room.created_by %}
                         <button onclick="deleteRoom('{{ room.id }}', '{{ room.name }}')"
                                 class="w-10 h-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,36 +123,63 @@
             <div class="border-t border-gray-200">
               <div class="bg-gray-50 px-4 py-5 sm:p-6">
                 <div class="space-y-4">
-                  {% if nodes %}
-                    {% for node in nodes %}
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                          <div class="flex-shrink-0">
-                            <div
-                              class="w-3 h-3 rounded-full {% if node.status == 'online' %}bg-green-500{% else %}bg-red-500{% endif %}"
-                            ></div>
+                  {% if user.is_admin %}
+                    {% if peer_nodes %}
+                      {% for node in peer_nodes %}
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                              <div class="flex-shrink-0">
+                                <div
+                                  class="w-3 h-3 rounded-full {% if node.status == 'online' %}bg-green-500{% else %}bg-red-500{% endif %}"
+                                ></div>
+                              </div>
+                              <div class="ml-3">
+                                <p class="text-sm font-medium text-gray-900">
+                                  {{ node.name }}
+                                </p>
+                                <p class="text-sm text-gray-500">{{ node.url }}</p>
+                              </div>
+                            </div>
+                            <span
+                              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if node.status == 'online' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
+                            >
+                              {{ node.status|title }}
+                            </span>
                           </div>
-                          <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900">
-                              {{ node.name }}
-                            </p>
-                            <p class="text-sm text-gray-500">{{ node.url }}</p>
+                          <div class="mt-2 text-xs text-gray-500">
+                            Rooms: {{ node.room_count }} | Load: {{ node.load }}%
                           </div>
                         </div>
-                        <span
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if node.status == 'online' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
-                        >
-                          {{ node.status|title }}
-                        </span>
+                      {% endfor %}
+                    {% endif %}
+                    {% endif %}
+
+                    {% if meta %}
+                      <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                              <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <div class="ml-3">
+                              <p class="text-sm font-medium text-gray-900">
+                                {{ meta.name }}
+                              </p>
+                              <p class="text-sm text-gray-500">{{ meta.url }}</p>
+                            </div>
+                          </div>
+                          <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mediumbg-green-100 text-green-800"
+                          >
+                            Online
+                          </span>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500">
+                          Rooms: {{ meta.room_count }} | Load: {{ meta.load }}%
+                        </div>
                       </div>
-                      <div class="mt-2 text-xs text-gray-500">
-                        Rooms: {{ node.room_count }} | Load: {{ node.load }}%
-                      </div>
-                    </div>
-                    {% endfor %}
-                  {% endif %}
-                </div>
+                    {% endif %}
               </div>
             </div>
           </div>
@@ -189,103 +216,142 @@
   </div>
 </div>
 
+
 <!-- Create Room Modal -->
 <div
   id="createRoomModal"
-  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden"
+  class="fixed inset-0 bg-cyber-darker bg-opacity-90 overflow-y-auto h-full w-full hidden z-50"
 >
-  <div
-    class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
-  >
-    <div class="mt-3">
-      <h3 class="text-lg font-medium text-gray-900 mb-4">
-        Create New Chat Room
-      </h3>
-      <form method="POST" action="{% url 'chat:create_room' %}">
-        {% csrf_token %}
-        <div class="mb-4">
-          <label
-            class="block text-gray-700 text-sm font-bold mb-2"
-            for="room_name"
+  <div onclick="closeCreateRoomModal()" class="particles" id="particles-container"></div>
+
+  <div class="relative top-10 mx-auto p-0 w-full max-w-md">
+    <div
+      class="grid-pattern rounded-xl overflow-hidden cyber-border bg-cyber-dark bg-opacity-90 backdrop-blur-sm"
+    >
+      <div class="p-6">
+        <!-- Header with icon -->
+        <div class="flex items-center justify-center mb-6">
+          <div
+            class="w-12 h-12 rounded-full bg-gradient-to-r from-cyber-blue to-cyber-purple flex items-center justify-center mr-3 animate-pulse-glow"
           >
-            Room Name
-          </label>
-          <input
-            type="text"
-            id="room_name"
-            name="room_name"
-            required
-            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          />
+            <i class="fas fa-comments text-white text-xl"></i>
+          </div>
+          <h3
+            class="cyber-font text-2xl font-bold bg-gradient-to-r from-cyber-blue to-cyber-purple bg-clip-text text-transparent"
+          >
+            Create New Chat Room
+          </h3>
         </div>
-        <div class="mb-4">
-          <label
-            class="block text-gray-700 text-sm font-bold mb-2"
-            for="room_description"
+
+        <form method="POST" action="{% url 'chat:create_room' %}">
+          {% csrf_token %}
+          <div class="mb-6 rounded-lg">
+            <label
+              class="block text-cyber-blue text-sm font-bold mb-3 cyber-font"
+              for="room_name"
+            >
+              <i class="fas fa-hashtag mr-2"></i>Room Name
+            </label>
+            <input
+              type="text"
+              id="room_name"
+              name="room_name"
+              required
+              class="cyber-input rounded-lg w-full py-3 px-4 text-gray-200 leading-tight focus:outline-none"
+              placeholder="Enter room name"
+            />
+          </div>
+          <div class="mb-8 rounded-lg">
+            <label
+              class="block text-cyber-blue text-sm font-bold mb-3 cyber-font"
+              for="room_description"
+            >
+              <i class="fas fa-align-left mr-2"></i>Description
+            </label>
+            <textarea
+              id="room_description"
+              name="room_description"
+              rows="3"
+              class="cyber-input rounded-lg w-full py-3 px-4 text-gray-200 leading-tight focus:outline-none"
+              placeholder="Describe the purpose of this room"
+            ></textarea>
+          </div>
+          <div
+            class="flex items-center justify-between pt-4 border-t border-cyber-blue border-opacity-30"
           >
-            Description
-          </label>
-          <textarea
-            id="room_description"
-            name="room_description"
-            rows="3"
-            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          ></textarea>
-        </div>
-        <div class="flex items-center justify-between">
-          <button
-            type="button"
-            onclick="closeCreateRoomModal()"
-            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Create Room
-          </button>
-        </div>
-      </form>
+            <button
+              type="button"
+              onclick="closeCreateRoomModal()"
+              class="cyber-button-secondary font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline cyber-font"
+            >
+              <i class="fas fa-times mr-2"></i>Cancel
+            </button>
+            <button
+              type="submit"
+              class="cyber-button text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:shadow-outline cyber-font"
+            >
+              <i class="fas fa-rocket mr-2"></i>Create Room
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer note -->
+    <div class="text-center mt-6 text-cyber-blue text-opacity-70 text-sm">
+      <i class="fas fa-shield-alt mr-1"></i> Secure & Encrypted Connection
     </div>
   </div>
 </div>
 
 <!-- Delete Room Confirmation Modal -->
-<div id="deleteRoomModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="deleteRoomModalContent">
+<div
+  id="deleteRoomModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0"
+    id="deleteRoomModalContent"
+  >
     <div class="p-6 border-b border-gray-200">
       <h3 class="text-xl font-bold text-gray-900">Delete Room</h3>
       <p class="text-sm text-gray-500 mt-1">This action cannot be undone</p>
     </div>
     <div class="p-6">
-      <p class="text-gray-700 mb-4">Are you sure you want to delete this Room "<span id="deleteRoomName" class="font-semibold"></span>"?</p>
+      <p class="text-gray-700 mb-4">
+        Are you sure you want to delete this Room "<span
+          id="deleteRoomName"
+          class="font-semibold"
+        ></span
+        >"?
+      </p>
       <div class="flex space-x-3">
-        <button onclick="closeDeleteRoomModal()"
-                class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+        <button
+          onclick="closeDeleteRoomModal()"
+          class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+        >
           Cancel
         </button>
-        <button id="confirmDeleteRoom"
-                class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105">
+        <button
+          id="confirmDeleteRoom"
+          class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105"
+        >
           Delete Room
         </button>
       </div>
     </div>
   </div>
 </div>
-{% endblock %}
-{% block footer %}
-    {# disable footer #}
-{% endblock %}
-{% block extra_js %}
+{% endblock %} {% block footer %} {# disable footer #} {% endblock %} {% block extra_js %}
 <script>
   function openCreateRoomModal() {
     document.getElementById("createRoomModal").classList.remove("hidden");
+    //createParticles();
   }
 
   function closeCreateRoomModal() {
     document.getElementById("createRoomModal").classList.add("hidden");
+    //clearParticles();
   }
 
   // Close modal when clicking outside
@@ -296,57 +362,103 @@
     }
   };
 
-function openDeleteRoomModal() {
-  const modal = document.getElementById('deleteRoomModal');
-  const content = document.getElementById('deleteRoomModalContent');
-  modal.classList.remove('hidden');
-  setTimeout(() => {
-    content.classList.remove('scale-95', 'opacity-0');
-    content.classList.add('scale-100', 'opacity-100');
-  }, 10);
-}
+  function openDeleteRoomModal() {
+    const modal = document.getElementById("deleteRoomModal");
+    const content = document.getElementById("deleteRoomModalContent");
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+      content.classList.remove("scale-95", "opacity-0");
+      content.classList.add("scale-100", "opacity-100");
+    }, 10);
+  }
 
-function closeDeleteRoomModal() {
-  const modal = document.getElementById('deleteRoomModal');
-  const content = document.getElementById('deleteRoomModalContent');
-  content.classList.remove('scale-100', 'opacity-100');
-  content.classList.add('scale-95', 'opacity-0');
-  setTimeout(() => modal.classList.add('hidden'), 300);
-}
+  function closeDeleteRoomModal() {
+    const modal = document.getElementById("deleteRoomModal");
+    const content = document.getElementById("deleteRoomModalContent");
+    content.classList.remove("scale-100", "opacity-100");
+    content.classList.add("scale-95", "opacity-0");
+    setTimeout(() => modal.classList.add("hidden"), 300);
+  }
 
-function deleteRoom(nodeId, nodeName) {
-  document.getElementById('deleteRoomName').textContent = nodeName;
-  document.getElementById('confirmDeleteRoom').onclick = () => confirmDeleteRoom(nodeId);
-  openDeleteRoomModal();
-}
+  function deleteRoom(nodeId, nodeName) {
+    document.getElementById("deleteRoomName").textContent = nodeName;
+    document.getElementById("confirmDeleteRoom").onclick = () =>
+      confirmDeleteRoom(nodeId);
+      openDeleteRoomModal();
+  }
 
-async function confirmDeleteRoom(RoomId) {
-  const button = document.getElementById('confirmDeleteRoom');
-  const originalContent = window.showLoading(button);
+  async function confirmDeleteRoom(RoomId) {
+    const button = document.getElementById("confirmDeleteRoom");
+    const originalContent = window.showLoading(button);
 
-  try {
-    const response = await fetch(`/chat/room/${RoomId}/delete/`, {
-      method: "DELETE",
-      headers: {
-        "X-CSRFToken": "{{ csrf_token }}",
-      },
-    });
+    try {
+      const response = await fetch(`/chat/room/${RoomId}/delete/`, {
+        method: "DELETE",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.status === "success") {
-      window.showMessage('Node deleted successfully!', 'success');
-      closeDeleteRoomModal();
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      window.showMessage('Error deleting node: ' + data.error, 'error');
+      if (data.status === "success") {
+        window.showMessage("Node deleted successfully!", "success");
+        closeDeleteRoomModal();
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        window.showMessage("Error deleting node: " + data.error, "error");
+        window.hideLoading(button, originalContent);
+      }
+    } catch (error) {
+      console.error(error);
+      window.showMessage("Error deleting node: " + error, "error");
       window.hideLoading(button, originalContent);
     }
-  } catch (error) {
-  console.error(error)
-    window.showMessage('Error deleting node: ' + error, 'error');
-    window.hideLoading(button, originalContent);
   }
-}
+
+ // Particle animation for background
+        function createParticles() {
+            const container = document.getElementById('particles-container');
+            const particleCount = 20;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+
+                // Random properties
+                const size = Math.random() * 5 + 2;
+                const left = Math.random() * 100;
+                const animationDuration = Math.random() * 20 + 10;
+                const animationDelay = Math.random() * 5;
+
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${left}%`;
+                particle.style.animationDuration = `${animationDuration}s`;
+                particle.style.animationDelay = `${animationDelay}s`;
+
+                container.appendChild(particle);
+            }
+        }
+
+        function clearParticles() {
+            const container = document.getElementById('particles-container');
+            container.innerHTML = '';
+        }
+
+        // Add some interactive effects to inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.cyber-input');
+
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    //this.parentElement.classList.add('animate-pulse-glow');
+                });
+
+                input.addEventListener('blur', function() {
+                    //this.parentElement.classList.remove('animate-pulse-glow');
+                });
+            });
+        });
 </script>
 {% endblock %}

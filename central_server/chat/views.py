@@ -48,6 +48,7 @@ def create_room_view(request):
     """Create a new chat room."""
     if request.method == "POST":
         room_name = request.POST.get("room_name")
+        logger.info(f"\033[1mCreating Room..\033[1;94m {room_name}\033[0m")
         room_description = request.POST.get("room_description", "")
 
         if not room_name:
@@ -156,7 +157,7 @@ def send_message_view(request, room_id):
 
     # Check if user is member
     if not room.members.filter(id=request.user.id).exists():
-        return JsonResponse({"error": "Not a member of this room"}, status=403)
+        return JsonResponse({"error": "You are Not a member of this room"}, status=403)
 
     data = json.loads(request.body)
     content = data.get("content", "").strip()
@@ -195,7 +196,7 @@ def get_room_messages(request, room_id):
     room = get_object_or_404(ChatRoom, id=room_id)
 
     if not room.members.filter(id=request.user.id).exists():
-        return JsonResponse({"error": "Not a member"}, status=403)
+        return JsonResponse({"error": "Room membership required"}, status=403)
 
     # Get messages with pagination
     before = request.GET.get("before")
@@ -259,12 +260,21 @@ def delete_room_view(request, room_id):
     try:
         room = get_object_or_404(ChatRoom, id=room_id)
 
-        print("\033[1;31mDeleting..\033[0m", room.name)
+        logger.info(f"\033[1;31mDeleting..\033[0m {room.name}")
 
         # Check if user is owner
         membership = RoomMembership.objects.filter(room=room, user=request.user).first()
-        if not membership or membership.role != "owner":
-            return HttpResponseForbidden("Only room owners can delete rooms.")
+        if (not membership or membership.role != "owner") and not request.user.is_admin:
+            logger.warn(
+                "\033[35mHTTP Permission denied. Only room owners can delete rooms.\033[0m"
+            )
+            return JsonResponse(
+                {
+                    "status:": "error",
+                    "error": "Permission denied. Only room owners can delete rooms.",
+                },
+                status=401,
+            )
 
         # Update node room count
         room.node.current_rooms = (

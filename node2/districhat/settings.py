@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-node2-@zf6=0u6e@u&7eh_tf8rb)zy!ou8dk3b$3meg*qnkqxtoga#az"
+SECRET_KEY = "django-insecure-node1-@zf6=0u6e@u&7eh_tf8rb)zy!ou8dk3b$3meg*qnkqxtoga#az"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -26,8 +26,7 @@ ALLOWED_HOSTS = [
 
 
 # Node 1 runs on port 8002
-PORT = 8003
-
+PORT = 8002
 
 # Application definition
 
@@ -58,7 +57,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_browser_reload.middleware.BrowserReloadMiddleware",
-    "nodes.middleware.NodeMiddleware",
+    "nodes.middleware.NodeRegistrationMiddleware",
+    "nodes.middleware.NodeHeartbeatMiddleware",
 ]
 
 ROOT_URLCONF = "districhat.urls"
@@ -85,7 +85,7 @@ AUTH_USER_MODEL = "users.CustomUser"
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "users.backends.EmailBackend",  # We'll create this
+    "users.backends.EmailBackend",  # To be created
 ]
 
 # WSGI and ASGI configuration
@@ -102,6 +102,9 @@ NODE_API_KEY = f"{SECRET_KEY}-{NODE_NAME}"
 IS_NODE = True
 CENTRAL_SERVER_URL = "http://localhost:8001"  # Points to central server
 
+SYNC_ENABLED = True
+SYNC_TIMEOUT = 10  # seconds
+SYNC_MAX_RETRIES = 3
 
 # Channel layers for WebSockets
 CHANNEL_LAYERS = {
@@ -116,12 +119,25 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "node2_db.sqlite3",
+TESTING = False
+if TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "node2_db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "districhat_node2",
+            "USER": "districhat_user",
+            "PASSWORD": "districhat@PhantomJoker@15",
+            "HOST": "localhost",
+            "PORT": "3306",
+        }
+    }
 
 """
     DATABASES = {
@@ -169,7 +185,7 @@ USE_TZ = True
 
 # Login URLs
 LOGIN_REDIRECT_URL = "chat:dashboard"
-LOGIN_URL = "users:login"
+LOGIN_URL = "/accounts/login"
 LOGOUT_REDIRECT_URL = "index"
 
 # Static files (CSS, JavaScript, Images)
@@ -227,13 +243,13 @@ LOGGING = {
     },
     "handlers": {
         "file": {
-            "level": "ERROR",
+            "level": "INFO",
             "class": "logging.FileHandler",
             "filename": "error.log",
             "formatter": "verbose",
         },
         "console": {
-            "level": "ERROR",
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
@@ -241,7 +257,7 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["file", "console"],
-            "level": "ERROR",
+            "level": "INFO",
             "propagate": True,
         },
     },

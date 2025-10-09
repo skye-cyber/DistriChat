@@ -54,6 +54,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_browser_reload.middleware.BrowserReloadMiddleware",
+    "nodes.middleware.NodePeerSyncMiddleware",
+    "nodes.middleware.NodeUserAutoSyncMiddleware",
+    "nodes.middleware.NodeSessionAutoSyncMiddleware",
 ]
 
 ROOT_URLCONF = "districhat.urls"
@@ -82,6 +85,7 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "users.backends.EmailBackend",
 ]
+IS_CENTRAL_SERVER = True
 
 # WSGI and ASGI configuration
 WSGI_APPLICATION = "districhat.wsgi.application"
@@ -228,13 +232,13 @@ LOGGING = {
     },
     "handlers": {
         "file": {
-            "level": "ERROR",
+            "level": "INFO",
             "class": "logging.FileHandler",
             "filename": "error.log",
             "formatter": "verbose",
         },
         "console": {
-            "level": "ERROR",
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
@@ -242,7 +246,7 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["file", "console"],
-            "level": "ERROR",
+            "level": "INFO",
             "propagate": True,
         },
     },

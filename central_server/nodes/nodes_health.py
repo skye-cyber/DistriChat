@@ -29,19 +29,17 @@ def node_heartbeat_processor(request, node_id):
         except Exception:
             heartbeat_data = {}
 
-        print(
-            f"\033[94m✅ Heartbeat received from node\033[1;0m {node.name} \033[33m({node_id}) \033[0m"
-        )
-        logger.info(f"❤️ Heartbeat received from node {node.name} ({node_id})")
+        print(f"\033[94m❤️  Heartbeat received from node\033[1;0m {node.name}\033[0m")
+        logger.info(f"❤️ Heartbeat received from node {node.name}")
 
         # Process the heartbeat
         success = process_heartbeat(node, heartbeat_data)
 
         if success:
-            print(
-                f"\033[32m✅ Heartbeat processed for node\033[1;0m {node.name}\033[0m"
+            # print(f"✅ \033[1m{node.name}:\033[32m Heartbeat successfully processed\033[0m")
+            logger.debug(
+                f"✅ \033[1m{node.name}:\033[32m Heartbeat successfully processed\033[0m"
             )
-            logger.debug(f"✅ Heartbeat processed for node {node.name}")
             return JsonResponse(
                 {
                     "status": "success",
@@ -51,9 +49,11 @@ def node_heartbeat_processor(request, node_id):
             )
         else:
             print(
-                f"❌ \033[31mHeartbeat processing failed for node\033[33m {node.name}\033[0m"
+                f"❌ \033[1;33m {node.name}:\033[31m Heartbeat processing failed\033[0m"
             )
-            logger.error(f"❌ Heartbeat processing failed for node {node.name}")
+            logger.error(
+                f"❌ \033[1;33m {node.name}:\033[31m Heartbeat processing failed\033[0m"
+            )
             return JsonResponse(
                 {"status": "error", "message": "Failed to process heartbeat"},
                 status=400,
