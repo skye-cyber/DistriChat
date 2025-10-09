@@ -5,7 +5,7 @@
 {% block header %}
     {# disable header #}
 {% endblock %}
-<div class="h-[100vh] max-h-[100vh] w-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 overflow-y-hidden">
+<div class="h-full max-h-full w-screen max-h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 overflow-y-hidden">
   <span id="user_meta" class="hidden" data-username="{{ user.username }}" data-initials="{{ user.username|first|upper }}"></span>
   <!-- Chat Header -->
   <div class="bg-white shadow-lg border-b border-gray-200">
@@ -50,7 +50,7 @@
             </div>
             <div>
               <h1 class="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">{{ room.name }}</h1>
-              <div class="flex items-center space-x-4 text-sm text-gray-600">
+              <div class="flex items-center space-x-1 sm:space-x-4 text-sm text-gray-600">
                 <span class="flex items-center space-x-1">
                   <div
                     class="w-2 h-2 bg-green-500 rounded-full pulse-animation"
@@ -58,7 +58,7 @@
                   <span class="flex gap-1"><span id="online-display">{{ online_members.count }}</span> online</span>
                 </span>
                 <span>•</span>
-                <span class="flex gap-1"><span id="member-display">{{ room.member_count }}</span> total members</span>
+                <span class="flex gap-1"><span id="member-display">{{ room.member_count }}</span> total <span class="hidden sm:flex"> members</span></span>
                 <span>•</span>
                 <span class="flex items-center space-x-1">
                   <svg
@@ -74,29 +74,29 @@
                       d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
                     />
                   </svg>
-                  <span>Node: {{ room.node.name }}</span>
+                  <span class="hidden sm:flex">Node: {{ room.node.name }}</span>
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-1 sm:space-x-4">
           <!-- Room Actions -->
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center space-x-1 sm:space-x-2">
             <button
               onclick="toggleMembersSidebar()"
               class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 flex items-center space-x-2"
             >
               <svg class="w-6 h-6 text-blue-700 fill-blue-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M320 80C377.4 80 424 126.6 424 184C424 241.4 377.4 288 320 288C262.6 288 216 241.4 216 184C216 126.6 262.6 80 320 80zM96 152C135.8 152 168 184.2 168 224C168 263.8 135.8 296 96 296C56.2 296 24 263.8 24 224C24 184.2 56.2 152 96 152zM0 480C0 409.3 57.3 352 128 352C140.8 352 153.2 353.9 164.9 357.4C132 394.2 112 442.8 112 496L112 512C112 523.4 114.4 534.2 118.7 544L32 544C14.3 544 0 529.7 0 512L0 480zM521.3 544C525.6 534.2 528 523.4 528 512L528 496C528 442.8 508 394.2 475.1 357.4C486.8 353.9 499.2 352 512 352C582.7 352 640 409.3 640 480L640 512C640 529.7 625.7 544 608 544L521.3 544zM472 224C472 184.2 504.2 152 544 152C583.8 152 616 184.2 616 224C616 263.8 583.8 296 544 296C504.2 296 472 263.8 472 224zM160 496C160 407.6 231.6 336 320 336C408.4 336 480 407.6 480 496L480 512C480 529.7 465.7 544 448 544L192 544C174.3 544 160 529.7 160 512L160 496z"/></svg>
               </svg>
-              <span>Members</span>
+              <span class="hidden sm:flex">Members</span>
             </button>
 
             {% if user == room.created_by or user_membership.role == 'admin' %}
             <button
               onclick="showRoomSettings()"
-              class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 flex items-center space-x-1 sm:space-x-2"
             >
               <svg
                 class="w-5 h-5"
@@ -117,7 +117,7 @@
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              <span>Settings</span>
+              <span class="hidden sm:flex">Settings</span>
             </button>
             {% endif %}
           </div>
@@ -502,6 +502,8 @@
         >
         <input
           type="text"
+          name="room_name"
+          id="room_name"
           value="{{ room.name }}"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
@@ -511,6 +513,9 @@
           >Description</label
         >
         <textarea
+          name="room_description"
+          id="room_description"
+          value="{{ room.description }}"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           rows="3"
         >
@@ -526,6 +531,7 @@
         Cancel
       </button>
       <button
+        id="update_room"
         class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
       >
         Save Changes

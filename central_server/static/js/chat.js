@@ -9,9 +9,10 @@ class ChatRoom {
     this.typingIndicator = document.getElementById("typing-indicator");
     this.typingUsers = document.getElementById("typing-users");
     this.onlineDisplay = document.getElementById("online-display");
-    this.membersDisplay = document.getElementById("online-display");
+    this.membersDisplay = document.getElementById("membership-display");
     this.userinitials = document.getElementById("user_meta").dataset.initials;
     this.username = document.getElementById("user_meta").dataset.username;
+    this.room_update_bt = document.getElementById("update_room");
 
     this.websocket = null;
     this.typingTimer = null;
@@ -197,7 +198,12 @@ class ChatRoom {
           : current_onlineusers
         : current_onlineusers - 1;
     value = value >= 0 ? value : 0;
-    this.onlineDisplay.textContent = value;
+
+    // Online members cannot except total members, this is beacuse user may be using multiple session
+    this.onlineDisplay.textContent =
+      value <= parseInt(this.membersDisplay?.textContent | 0)
+        ? value
+        : parseInt(this.membersDisplay.textContent);
   }
 
   handleTypingIndicator(data) {
@@ -485,6 +491,15 @@ document.addEventListener("DOMContentLoaded", function () {
       window.chat.hideRoomSettings();
     }
   });
+  window.chat.room_update_bt.addEventListener("click", function (e) {
+    e.preventDefault();
+    const r_name = document.getElementById("room_name").value;
+    const r_desc = document.getElementById("room_description").value;
+    UpdateRoom(window.chat.roomId, {
+      room_name: r_name,
+      room_description: r_desc,
+    });
+  });
 });
 
 // Global functions for HTML onclick attributes
@@ -510,4 +525,50 @@ function autoResize(textarea) {
 
 function handleTyping() {
   if (window.chat) window.chat.handleLocalTyping();
+}
+
+async function UpdateRoom(RoomId, room_data) {
+  const button = window.chat.room_update_bt;
+  const originalContent = window.showLoading(button);
+
+  try {
+    const response = await fetch(`/chat/room/${RoomId}/update/`, {
+      method: "PATCH",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: JSON.stringify(room_data),
+    });
+
+    const data = await response.json();
+
+    if (data.status === "success") {
+      window.showMessage("Room updated successfully!", "success");
+      window.chat.hideRoomSettings();
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      window.showMessage("Error updating room: " + data.error, "error");
+      window.hideLoading(button, originalContent);
+    }
+  } catch (error) {
+    console.error(error);
+    window.showMessage("Error updating room: " + error, "error");
+    window.hideLoading(button, originalContent);
+  }
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let c of cookies) {
+      const cookie = c.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  console.log(cookieValue);
+  return cookieValue;
 }

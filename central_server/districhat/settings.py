@@ -213,7 +213,7 @@ EMAIL_HOST_PASSWORD = "vkcjyzwbzlgbwgzz"
 
 
 # Central server URL
-CENTRAL_SERVER_URL = "http://localhost:8000"
+CENTRAL_SERVER_URL = "http://localhost:8001"
 
 
 # Default primary key field type

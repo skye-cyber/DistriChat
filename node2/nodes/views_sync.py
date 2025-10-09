@@ -444,7 +444,7 @@ class SyncViaCentralReceiverAPI(View):
             return True
 
         except (ChatRoom.DoesNotExist, User.DoesNotExist, RoomMembership.DoesNotExist):
-            logger.warning(f"RoomMembership not found for deletion: {data}")
+            logger.warning(f"RoomMembership not found for deletion: {data['room_id']}")
             return True
 
     def process_messagereadstatus_sync(self, action, data, node, *args):

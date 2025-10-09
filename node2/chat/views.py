@@ -113,6 +113,10 @@ def chat_room_view(request, room_id):
     """Chat room view with messages."""
     room = get_object_or_404(ChatRoom.objects.prefetch_related("members"), id=room_id)
 
+    # make sure this user is amrked as online
+    request.user.is_online = True
+    request.user.update_last_seen()
+
     # Check if user is member (for private rooms)
     if (
         room.room_type == "private"
@@ -150,6 +154,48 @@ def chat_room_view(request, room_id):
         "online_members": online_members,
     }
     return render(request, "chat/chat_room.html", context)
+
+
+@login_required
+@require_http_methods(["PATCH", "POST"])
+def update_chat_room(request, room_id):
+    """Chat room view with messages."""
+    try:
+        data = json.loads(request.body)
+        room_name = data.get("room_name", None)
+        room_description = data.get("room_description", None)
+
+        room = get_object_or_404(ChatRoom, id=room_id)
+
+        # Check if user is member (for private rooms)
+        membership = RoomMembership.objects.filter(room=room, user=request.user).first()
+        if (not membership or membership.role != "owner") and not request.user.is_admin:
+            logger.warn(
+                "\033[35mHTTP Permission denied. Only room owners can update rooms.\033[0m"
+            )
+            return JsonResponse(
+                {
+                    "status:": "error",
+                    "error": "Permission denied. Only room owners can update rooms.",
+                },
+                status=401,
+            )
+
+        if room:
+            room.name = room_name if room_name else room.name
+            room.description = (
+                room_description if room_description else room.description
+            )
+            room.save()
+
+        return JsonResponse(
+            {"status": "success", "message": "Room update successfully"}, status=200
+        )
+    except Exception as e:
+        print(f"\033[31m{e}\033[0m")
+        return JsonResponse(
+            {"status": "error", "error": "Could not update the room"}, status=500
+        )
 
 
 @login_required

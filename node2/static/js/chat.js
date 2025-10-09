@@ -12,6 +12,7 @@ class ChatRoom {
     this.membersDisplay = document.getElementById("online-display");
     this.userinitials = document.getElementById("user_meta").dataset.initials;
     this.username = document.getElementById("user_meta").dataset.username;
+    this.room_update_bt = document.getElementById("update_room");
 
     this.websocket = null;
     this.typingTimer = null;
@@ -99,24 +100,24 @@ class ChatRoom {
     <div class="flex space-x-3 w-fit max-w-3xl ${isCurrentUser ? "ml-auto" : ""}">
     ${
       !isCurrentUser
-      ? `
+        ? `
       <div class="flex-shrink-0 -mt-2">
       <div class="size-5 sm:size-8 lg:size-10 bg-gradient-to-r from-${data.color || "blue"}-500 to-${data.color || "blue"}-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
       ${data.sender ? data.sender.charAt(0).toUpperCase() : "U"}
       </div>
       </div>
       `
-      : ""
+        : ""
     }
 
     <div class="flex-1 mt-1 ${isCurrentUser ? "text-right" : ""}">
     <div class="${isCurrentUser ? "bg-indigo-500 text-white rounded-tr-none" : "bg-white border border-gray-200 rounded-tl-none"} rounded-2xl px-3 py-1 shadow-sm hover:shadow-md transition-all duration-200">
     ${
       !isCurrentUser
-      ? `
+        ? `
       <p class="text-[12px] font-semibold text-gray-900 mb-1">${data.sender}</p>
       `
-      : ""
+        : ""
     }
     <p class="${isCurrentUser ? "text-white" : "text-gray-800"} leading-relaxed">${this.escapeHtml(data.message)}</p>
     <p class="flex text-xs justify-end ${isCurrentUser ? "text-blue-100" : "text-gray-500"} mt-0.5">
@@ -142,14 +143,14 @@ class ChatRoom {
 
     ${
       isCurrentUser
-      ? `
+        ? `
       <div class="flex-shrink-0 -mt-2">
       <div class="size-5 sm:size-8 lg:size-10 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
       ${this.userinitials}
       </div>
       </div>
       `
-      : ""
+        : ""
     }
     </div>
     </div>
@@ -191,13 +192,18 @@ class ChatRoom {
     const current_onlineusers = parseInt(this.onlineDisplay.textContent);
 
     let value =
-    action === "enter"
-    ? current_onlineusers !== 1
-    ? current_onlineusers + 1
-    : current_onlineusers
-    : current_onlineusers - 1;
+      action === "enter"
+        ? current_onlineusers !== 1
+          ? current_onlineusers + 1
+          : current_onlineusers
+        : current_onlineusers - 1;
     value = value >= 0 ? value : 0;
-    this.onlineDisplay.textContent = value;
+
+    // Online members cannot except total members, this is beacuse user may be using multiple session
+    this.onlineDisplay.textContent =
+      value <= parseInt(this.membersDisplay.textContent)
+        ? value
+        : parseInt(this.membersDisplay.textContent);
   }
 
   handleTypingIndicator(data) {
@@ -403,11 +409,11 @@ class ChatRoom {
     modal.classList.remove("hidden");
     setTimeout(() => {
       modal
-      .querySelector(".bg-white")
-      .classList.remove("scale-95", "opacity-0");
+        .querySelector(".bg-white")
+        .classList.remove("scale-95", "opacity-0");
       modal
-      .querySelector(".bg-white")
-      .classList.add("scale-100", "opacity-100");
+        .querySelector(".bg-white")
+        .classList.add("scale-100", "opacity-100");
     }, 10);
   }
 
@@ -444,11 +450,11 @@ class ChatRoom {
     modal.classList.remove("hidden");
     setTimeout(() => {
       modal
-      .querySelector(".bg-white")
-      .classList.remove("scale-95", "opacity-0");
+        .querySelector(".bg-white")
+        .classList.remove("scale-95", "opacity-0");
       modal
-      .querySelector(".bg-white")
-      .classList.add("scale-100", "opacity-100");
+        .querySelector(".bg-white")
+        .classList.add("scale-100", "opacity-100");
     }, 10);
 
     document.getElementById("cancel-settings").addEventListener("click", () => {
@@ -471,10 +477,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Close sidebar when clicking backdrop
   document
-  .getElementById("sidebar-backdrop")
-  .addEventListener("click", function () {
-    window.chat.toggleMembersSidebar();
-  });
+    .getElementById("sidebar-backdrop")
+    .addEventListener("click", function () {
+      window.chat.toggleMembersSidebar();
+    });
 
   // Close modals when clicking outside
   document.addEventListener("click", function (e) {
@@ -484,6 +490,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (e.target.id === "room-settings-modal") {
       window.chat.hideRoomSettings();
     }
+  });
+  window.chat.room_update_bt.addEventListener("click", function (e) {
+    e.preventDefault();
+    const r_name = document.getElementById("room_name").value;
+    const r_desc = document.getElementById("room_description").value;
+    UpdateRoom(window.chat.roomId, {
+      room_name: r_name,
+      room_description: r_desc,
+    });
   });
 });
 
@@ -510,4 +525,50 @@ function autoResize(textarea) {
 
 function handleTyping() {
   if (window.chat) window.chat.handleLocalTyping();
+}
+
+async function UpdateRoom(RoomId, room_data) {
+  const button = window.chat.room_update_bt;
+  const originalContent = window.showLoading(button);
+
+  try {
+    const response = await fetch(`/chat/room/${RoomId}/update/`, {
+      method: "PATCH",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: JSON.stringify(room_data),
+    });
+
+    const data = await response.json();
+
+    if (data.status === "success") {
+      window.showMessage("Room updated successfully!", "success");
+      window.chat.hideRoomSettings();
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      window.showMessage("Error updating room: " + data.error, "error");
+      window.hideLoading(button, originalContent);
+    }
+  } catch (error) {
+    console.error(error);
+    window.showMessage("Error updating room: " + error, "error");
+    window.hideLoading(button, originalContent);
+  }
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let c of cookies) {
+      const cookie = c.trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  console.log(cookieValue);
+  return cookieValue;
 }

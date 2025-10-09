@@ -237,8 +237,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_user_online_status(self, is_online):
         """Update user's online status."""
-        self.user.is_online = is_online
-        self.user.save()
+        try:
+            self.user.is_online = is_online
+            self.user.save()
+        except Exception:
+            pass
 
     @database_sync_to_async
     def mark_message_as_read(self, message_id):

@@ -67,7 +67,8 @@ class CentralSyncSignalHandler:
     def get_active_nodes(self, exclude_node_id=None):
         """Get all active nodes excluding the specified one"""
         try:
-            nodes = Node.objects.filter(status="online")
+            # Get all since node may be online but status has not updated yet
+            nodes = Node.objects.all()
             if exclude_node_id:
                 nodes = nodes.exclude(id=exclude_node_id)
             if not nodes:
@@ -157,6 +158,7 @@ class CentralSyncSignalHandler:
                 except requests.exceptions.ConnectionError:
                     logger.warning(f"Connection error to node {node.name}")
                 except Exception as e:
+                    raise
                     logger.error(f"Sync error to node {node.name}: {e}")
 
             logger.info(f"Sync completed: {successful_syncs}/{total_nodes} nodes")
@@ -170,7 +172,11 @@ class CentralSyncSignalHandler:
         if data and isinstance(data, dict):
             return data
         if hasattr(instance, "to_sync_dict"):
-            return instance.to_sync_dict
+            return (
+                instance.to_sync_dict
+                if isinstance(instance.to_sync_dict, dict)
+                else instance.to_sync_dict()
+            )
 
         data = {"id": str(instance.id)}
         model_class = type(instance)
