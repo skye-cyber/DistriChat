@@ -275,21 +275,40 @@ flowchart TD
 
 ```
 districhat/
-├── districhat/         # Project settings
-├── chat/               # Main chat application
-├── nodes/              # Node management app
-├── templates/          # HTML templates
-├── static/             # Static files (CSS, JS, images)
-├── users               # User management
+├── central_server      ## Main server-Manages nodes and sync them
+│   ├── chat            # Main chat application
+│   ├── districhat      # Project settings
+│   ├── nodes           # Node management app
+│   ├── static          # Static files (CSS, JS, images)
+│   ├── templates       # HTML templates
+│   └── users           # User management
+├── node1               ## NODE 1
+│   ├── chat            # Main chat application  
+│   ├── districhat      # Project settings
+│   ├── nodes           # Node management app
+│   ├── static          # Static files (CSS, JS, images)
+│   ├── templates       # HTML templates
+│   └── users           # User management
+└── node2               ## NODE 2
+    ├── chat            # Main chat application
+    ├── districhat      # Project settings
+    ├── nodes           # Node management app
+    ├── static          # Static files (CSS, JS, images)
+    ├── templates       # HTML templates
+    └── users           # User management
 └── requirements.txt    # Python dependencies
+
 ```
 
 ## Installation
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.13+
 - Redis server
 - Virtual environment (recommended)
+- channels
+- channels_redis
+- requests
 
 ### Setup Instructions
 
@@ -306,10 +325,29 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. **Configure environment**:
+3. **Configure**:
+- Can be modified via settings for each node eg server configuration
+
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+TESTING = False
+if TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "node2_db.sqlite3",
+        }
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "districhat_node2",
+            "USER": "districhat_user",
+            "PASSWORD": "districhat@PhantomJoker@15",
+            "HOST": "localhost",
+            "PORT": "3306",
+        }
+    }
 ```
 
 4. **Run migrations**:
@@ -335,26 +373,46 @@ redis-server
 ```
 
 7. **Run the development server**:
+
+>> **Central server**
 ```bash
-python manage.py runserver
+npm run start:main
+```
+or
+```bash
+python central_server/manage.py runserver 0.0.0.0:8001
 ```
 
+>> **Node1 server**
+```bash
+npm run start:node1
+```
+
+>> **Node2 server**
+```bash
+npm run start:node2
+```
 ## Configuration
 
 ### Environment Variables
-Create a `.env` file with the following variables:
+Create a in settings.py for all nodes file update:
 
 ```env
-DEBUG=True
-SECRET_KEY=your-secret-key-here
-DATABASE_URL=sqlite:///db.sqlite3
-REDIS_URL=redis://localhost:6379
-ALLOWED_HOSTS=localhost,127.0.0.1
+DEBUG = True
+
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "192.168.43.234",
+    "0.0.0.0",
+    "node1.chatserver.local",
+]
 ```
 
 ### Database
 The project supports multiple databases through Django's database configuration:
-- SQLite (default, for development)
+- SQLite (set as default for testing)
+- MySQL (default db)
 - PostgreSQL (recommended for production)
 
 ## Usage
@@ -369,13 +427,14 @@ The project supports multiple databases through Django's database configuration:
 1. **Monitor Nodes**: View status of all distributed nodes
 2. **Manage Rooms**: Oversee chat room creation and usage
 3. **User Management**: Administer user accounts and permissions
+4. **Approve** new node Registration
 
 ## Distributed Architecture
 
 ### Node Registration
 1. Nodes register with the central server
 2. Server maintains node health and load information
-3. New chat rooms are assigned to the least loaded node
+3. New chat rooms are assigned to the least loaded node - this keeps nodes within their capacities
 
 ### Message Flow
 1. User sends message → Central server
@@ -429,22 +488,19 @@ sequenceDiagram
 - `/` - Homepage
 - `/register/` - User registration
 - `/login/` - User login
-- `/dashboard/` - User dashboard
+- `/chat/dashboard/` - User dashboard
 - `/chat/{room_id}/` - Chat room
-- `/nodes/` - Node management (admin)
+- `/nodes/dashboard` - Node management (admin)
+- `/admin/` - Django admin site
 
-## Development
-
-### Running Tests
-```bash
-python manage.py test
-```
 
 ### Code Style
 This project uses:
 - Black for code formatting
 - Flake8 for linting
 - isort for import sorting
+- mccabe for code styling
+- pycodestyle for code formating
 
 ### Adding New Features
 1. Create feature branch
