@@ -69,6 +69,7 @@ class CustomUser(AbstractUser):
 
     def to_sync_dict(self):
         return {
+            "password": self.password,
             "user_id": str(self.id),  # ✅ Convert UUID to string
             "username": self.username,
             "email": self.email,

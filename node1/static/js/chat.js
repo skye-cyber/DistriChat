@@ -1,4 +1,3 @@
-// static/js/chat.js
 class ChatRoom {
   constructor() {
     this.roomId = document.getElementById("room-id").value;
@@ -63,6 +62,7 @@ class ChatRoom {
     switch (data.type) {
       case "chat_message":
         this.displayMessage(data);
+        this.markMessageAsRead(data);
         break;
       case "user_join":
         this.handleUserJoin(data);
@@ -390,6 +390,19 @@ class ChatRoom {
     });
   }
 
+  markMessageAsRead(data) {
+    // Implement message read functionality functionality
+    // Send reaction via WebSocket
+    if (data.sender === this.username) {
+      this.websocket.send(
+        JSON.stringify({
+          type: "read_receipt",
+          message_id: data.message_id,
+        }),
+      );
+    }
+  }
+
   reactToMessage(messageId, reaction) {
     // Implement reaction functionality
     console.log(`Reacted with ${reaction} to message ${messageId}`);
@@ -569,6 +582,5 @@ function getCookie(name) {
       }
     }
   }
-  console.log(cookieValue);
   return cookieValue;
 }

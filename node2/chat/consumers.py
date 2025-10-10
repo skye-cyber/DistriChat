@@ -247,6 +247,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def mark_message_as_read(self, message_id):
         """Mark a message as read by the user."""
         try:
+            print("\033[1;32mMarking message as read\033[0m")
             from .models import MessageReadStatus
 
             message = Message.objects.get(id=message_id)

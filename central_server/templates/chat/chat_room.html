@@ -162,7 +162,7 @@
           </p>
         </div>
         <!-- Sample Messages (will be replaced by real messages) -->
-        {% for message in messages %}
+        {% for message in room_messages %}
         <div
           class="message-item {% if message.sender == user %}message-sent{% else %}message-received{% endif %} animate-fade-in"
         >

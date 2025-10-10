@@ -9,7 +9,7 @@ from chat.models import (
 )
 from users.models import UserSession
 import logging
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -98,7 +98,6 @@ class SyncViaCentralReceiverAPI(View):
                 f"\033[1mSyncing this -: \033[0m{settings.NODE_NAME} \033[1mFrom:CENTRAL_SERVER\033[0m"
             )
             data = json.loads(request.body)
-            logger.info(f"\033[35m{data}\033[0m")
             # Set the origin before saving
             node_id = PeerNode.objects.filter(name=settings.NODE_NAME).first().id
 
@@ -111,9 +110,11 @@ class SyncViaCentralReceiverAPI(View):
                 return JsonResponse({"error": "Authentication failed"}, status=401)
 
             if is_node:
-                print(f"INFO \033[32mAuthenication success:\033[35m {node.name}\033[0m")
+                logger.debug(
+                    f"INFO \033[32mAuthenication success:\033[35m {node.name}\033[0m"
+                )
             else:
-                print("INFO \033[35mAuthenication ByPass\033[0m")
+                logger.info("INFO \033[35mAuthenication ByPass\033[0m")
 
             timestamp = data.get("timestamp")
 
@@ -139,7 +140,7 @@ class SyncViaCentralReceiverAPI(View):
             sync_data = data.get("data")
             # node_id = data.get("node_id")
 
-            print(f"Syncing-: {action} \033[1m: {model_name}\033[0m")
+            logger.info(f"Syncing-: {action} \033[1m: {model_name}\033[0m")
             # Process the sync request
             success = self.process_sync_request(
                 node if is_node else dummy_node,
@@ -150,7 +151,7 @@ class SyncViaCentralReceiverAPI(View):
             )
 
             if success:
-                print("\033[1;32mSync succeeded\033[0m")
+                logger.info("\033[1;32mSync succeeded\033[0m")
                 if is_node:
                     syncs.status = "completed"
                     syncs.completed_at = timezone.now()
@@ -168,7 +169,7 @@ class SyncViaCentralReceiverAPI(View):
                     },
                     status=200,
                 )
-            print(f"\033[1;36mSync failed with rerurn:\033[0m {success}")
+            logger.debug(f"\033[1;36mSync failed with rerurned:\033[0m {success}")
             return JsonResponse(
                 {
                     "status": "fail",
@@ -261,7 +262,7 @@ class SyncViaCentralReceiverAPI(View):
                 return None
 
             room = q_room.first()
-            sender = User.objects.get(id=data["sender_id"])
+            sender = User.objects.get(username=data["sender_username"])
 
             # Create or update message
             message, created = Message.objects.update_or_create(
@@ -301,7 +302,7 @@ class SyncViaCentralReceiverAPI(View):
         except User.DoesNotExist:
             syncs.status = "failed"
             syncs.save()
-            logger.error(f"User {data['sender_id']} not found for message sync")
+            logger.error(f"User {data['sender_username']} not found for message sync")
 
     def delete_message(self, data, syncs) -> bool:
         """
@@ -314,18 +315,10 @@ class SyncViaCentralReceiverAPI(View):
             if q_message.exists():
                 q_message.first().delete()
 
-                if syncs:
-                    MessageSyncLog.objects.create(
-                        sync_session=syncs,
-                        message=q_message.first(),
-                        action="delete",
-                    )
                 logger.info(f"Deleted message {data['id']}")
+            logger.error(f"Message not found for deletion: {data['id']}")
             return True
         except Message.DoesNotExist:
-            if syncs:
-                syncs.status = "failed"
-                syncs.save()
             logger.warning(f"Message {data['id']} not found for deletion")
             return True  # Already deleted, consider success
 
@@ -345,7 +338,7 @@ class SyncViaCentralReceiverAPI(View):
         try:
             # Get related objects
             room_node = PeerNode.objects.get(id=data["node_id"])
-            created_by = User.objects.get(id=data["created_by_id"])
+            created_by = User.objects.get(username=data["created_by_username"])
 
             # Create or update chatroom
             chatroom, created = ChatRoom.objects.update_or_create(
@@ -376,7 +369,9 @@ class SyncViaCentralReceiverAPI(View):
             logger.error(f"Node {data['node_id']} not found for chatroom sync")
 
         except User.DoesNotExist:
-            logger.error(f"User {data['created_by_id']} not found for chatroom sync")
+            logger.error(
+                f"User {data['created_by_username']} not found for chatroom sync"
+            )
 
     def delete_chatroom(self, data) -> bool:
         """Delete chatroom in central server"""
@@ -405,7 +400,7 @@ class SyncViaCentralReceiverAPI(View):
         """Create or update room membership in central server"""
         try:
             room = ChatRoom.objects.get(id=data["room_id"])
-            user = User.objects.get(id=data["user_id"])
+            user = User.objects.get(username=data["username"])
 
             membership, created = RoomMembership.objects.update_or_create(
                 room=room,
@@ -427,7 +422,7 @@ class SyncViaCentralReceiverAPI(View):
         except ChatRoom.DoesNotExist:
             logger.error(f"ChatRoom {data['room_id']} not found for membership sync")
         except User.DoesNotExist:
-            logger.error(f"User {data['user_id']} not found for membership sync")
+            logger.error(f"User {data['username']} not found for membership sync")
         except Exception:
             raise
 
@@ -435,7 +430,7 @@ class SyncViaCentralReceiverAPI(View):
         """Delete room membership in central server"""
         try:
             room = ChatRoom.objects.get(id=data["room_id"])
-            user = User.objects.get(id=data["user_id"])
+            user = User.objects.get(username=data["username"])
 
             q_membership = RoomMembership.objects.filter(room=room, user=user)
             if q_membership.exists():
@@ -464,7 +459,7 @@ class SyncViaCentralReceiverAPI(View):
         """Create or update message in central server"""
         try:
             # Get related objects
-            user = User.objects.get(id=data["sender_id"])
+            user = User.objects.get(username=data["username"])
 
             message = Message.objects.get(id=data["message_id"])
 
@@ -496,7 +491,7 @@ class SyncViaCentralReceiverAPI(View):
         """Delete message in central server"""
         try:
             # Get related objects
-            user = User.objects.get(id=data["sender_id"])
+            user = User.objects.get(username=data["username"])
 
             message = Message.objects.get(id=data["message_id"])
 
@@ -511,6 +506,9 @@ class SyncViaCentralReceiverAPI(View):
             logger.warning(
                 f"MessageReadStatus {data['message_id']} not found for deletion"
             )
+            return True  # Already deleted, consider success
+        except Message.DoesNotExist:
+            logger.warning(f"Message {data['id']} not found for deletion")
             return True  # Already deleted, consider success
 
     def process_session_sync(self, action, data, node, *args):
@@ -529,7 +527,7 @@ class SyncViaCentralReceiverAPI(View):
         try:
             # Create or update message
             session, created = UserSession.objects.update_or_create(
-                id=data["user_id"],
+                username=data["username"],
                 defaults={
                     "session_key": data["session_key"],
                     "ip_address": data["ip_address"],
@@ -573,28 +571,38 @@ class SyncViaCentralReceiverAPI(View):
     def create_or_update_user(self, data, node):
         """Create or update message in central server"""
         try:
-            # Create or update message
-            user, created = User.objects.update_or_create(
-                id=data["user_id"],
-                defaults={
-                    "username": data["username"],
-                    "email": data["email"],
-                    "is_online": data["is_online"],
-                    "last_seen": fromiso_timezone_aware(data["last_seen"]),
-                    "avatar": data["avatar"],
-                    "bio": data["bio"],
-                    "notification_enabled": data["notification_enabled"],
-                    "sound_enabled": data["sound_enabled"],
-                    "total_messages_sent": data["total_messages_sent"],
-                    "rooms_joined": data["rooms_joined"],
-                },
-            )
+            with transaction.atomic():
+                # Create or update message
+                user, created = User.objects.update_or_create(
+                    username=data["username"],
+                    defaults={
+                        "email": data["email"],
+                        "is_online": data["is_online"],
+                        "last_seen": fromiso_timezone_aware(data["last_seen"]),
+                        "avatar": data["avatar"],
+                        "bio": data["bio"],
+                        "notification_enabled": data["notification_enabled"],
+                        "sound_enabled": data["sound_enabled"],
+                        "total_messages_sent": data["total_messages_sent"],
+                        "rooms_joined": data["rooms_joined"],
+                    },
+                )
 
-            logger.info(
-                f"{'Created' if created else 'Updated'} message status {user.id} from node {node.name}"
-            )
+                # Avoid overwriting user password
+                if created and data.get("password", None):
+                    user_id = data.get("user_id", None)
+                    user.id = user_id if user_id else user.id
+                    user.password = data["password"]
+                    user.save()
+
+                logger.info(
+                    f"{'Created' if created else 'Updated'} user: {user.id} from node {node.name}"
+                )
             return user
 
+        except IntegrityError as e:
+            print(f"Error updating/creating user: \033[91m{e}\033[0m")
+            logger.error(e)
         except User.DoesNotExist:
             logger.error(f"User {data['id']} not found for user sync")
 
@@ -602,13 +610,13 @@ class SyncViaCentralReceiverAPI(View):
         """Delete message in central server"""
         try:
             # Get related objects
-            user = User.objects.get(id=data["user_id"])
+            user = User.objects.get(username=data["username"])
 
             user.delete()
-            logger.info(f"Deleted user {data['user_id']}")
+            logger.info(f"Deleted user {data['username']}")
             return True
         except User.DoesNotExist:
-            logger.warning(f"User {data['user_id']} not found for deletion")
+            logger.warning(f"User {data['username']} not found for deletion")
             return True  # Already deleted, consider success
 
 

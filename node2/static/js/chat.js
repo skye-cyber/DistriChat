@@ -1,4 +1,3 @@
-// static/js/chat.js
 class ChatRoom {
   constructor() {
     this.roomId = document.getElementById("room-id").value;
@@ -9,7 +8,7 @@ class ChatRoom {
     this.typingIndicator = document.getElementById("typing-indicator");
     this.typingUsers = document.getElementById("typing-users");
     this.onlineDisplay = document.getElementById("online-display");
-    this.membersDisplay = document.getElementById("online-display");
+    this.membersDisplay = document.getElementById("membership-display");
     this.userinitials = document.getElementById("user_meta").dataset.initials;
     this.username = document.getElementById("user_meta").dataset.username;
     this.room_update_bt = document.getElementById("update_room");
@@ -63,6 +62,7 @@ class ChatRoom {
     switch (data.type) {
       case "chat_message":
         this.displayMessage(data);
+        this.markMessageAsRead(data);
         break;
       case "user_join":
         this.handleUserJoin(data);
@@ -98,26 +98,24 @@ class ChatRoom {
     const messageHtml = `
     <div id="${messageId}" class="message-item ${isCurrentUser ? "message-sent" : "message-received"} animate-fade-in">
     <div class="flex space-x-3 w-fit max-w-3xl ${isCurrentUser ? "ml-auto" : ""}">
-    ${
-      !isCurrentUser
-        ? `
+    ${!isCurrentUser
+      ? `
       <div class="flex-shrink-0 -mt-2">
       <div class="size-5 sm:size-8 lg:size-10 bg-gradient-to-r from-${data.color || "blue"}-500 to-${data.color || "blue"}-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
       ${data.sender ? data.sender.charAt(0).toUpperCase() : "U"}
       </div>
       </div>
       `
-        : ""
+      : ""
     }
 
     <div class="flex-1 mt-1 ${isCurrentUser ? "text-right" : ""}">
     <div class="${isCurrentUser ? "bg-indigo-500 text-white rounded-tr-none" : "bg-white border border-gray-200 rounded-tl-none"} rounded-2xl px-3 py-1 shadow-sm hover:shadow-md transition-all duration-200">
-    ${
-      !isCurrentUser
-        ? `
+    ${!isCurrentUser
+      ? `
       <p class="text-[12px] font-semibold text-gray-900 mb-1">${data.sender}</p>
       `
-        : ""
+      : ""
     }
     <p class="${isCurrentUser ? "text-white" : "text-gray-800"} leading-relaxed">${this.escapeHtml(data.message)}</p>
     <p class="flex text-xs justify-end ${isCurrentUser ? "text-blue-100" : "text-gray-500"} mt-0.5">
@@ -141,16 +139,15 @@ class ChatRoom {
     </div>
     </div>
 
-    ${
-      isCurrentUser
-        ? `
+    ${isCurrentUser
+      ? `
       <div class="flex-shrink-0 -mt-2">
       <div class="size-5 sm:size-8 lg:size-10 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
       ${this.userinitials}
       </div>
       </div>
       `
-        : ""
+      : ""
     }
     </div>
     </div>
@@ -192,18 +189,18 @@ class ChatRoom {
     const current_onlineusers = parseInt(this.onlineDisplay.textContent);
 
     let value =
-      action === "enter"
-        ? current_onlineusers !== 1
-          ? current_onlineusers + 1
-          : current_onlineusers
-        : current_onlineusers - 1;
+    action === "enter"
+    ? current_onlineusers !== 1
+    ? current_onlineusers + 1
+    : current_onlineusers
+    : current_onlineusers - 1;
     value = value >= 0 ? value : 0;
 
     // Online members cannot except total members, this is beacuse user may be using multiple session
     this.onlineDisplay.textContent =
-      value <= parseInt(this.membersDisplay.textContent)
-        ? value
-        : parseInt(this.membersDisplay.textContent);
+    value <= parseInt(this.membersDisplay.textContent)
+    ? value
+    : parseInt(this.membersDisplay.textContent);
   }
 
   handleTypingIndicator(data) {
@@ -390,6 +387,19 @@ class ChatRoom {
     });
   }
 
+  markMessageAsRead(data) {
+    // Implement message read functionality functionality
+    // Send reaction via WebSocket
+    if (data.sender === this.username) {
+      this.websocket.send(
+        JSON.stringify({
+          type: "read_receipt",
+          message_id: data.message_id,
+        }),
+      );
+    }
+  }
+
   reactToMessage(messageId, reaction) {
     // Implement reaction functionality
     console.log(`Reacted with ${reaction} to message ${messageId}`);
@@ -409,11 +419,11 @@ class ChatRoom {
     modal.classList.remove("hidden");
     setTimeout(() => {
       modal
-        .querySelector(".bg-white")
-        .classList.remove("scale-95", "opacity-0");
+      .querySelector(".bg-white")
+      .classList.remove("scale-95", "opacity-0");
       modal
-        .querySelector(".bg-white")
-        .classList.add("scale-100", "opacity-100");
+      .querySelector(".bg-white")
+      .classList.add("scale-100", "opacity-100");
     }, 10);
   }
 
@@ -450,11 +460,11 @@ class ChatRoom {
     modal.classList.remove("hidden");
     setTimeout(() => {
       modal
-        .querySelector(".bg-white")
-        .classList.remove("scale-95", "opacity-0");
+      .querySelector(".bg-white")
+      .classList.remove("scale-95", "opacity-0");
       modal
-        .querySelector(".bg-white")
-        .classList.add("scale-100", "opacity-100");
+      .querySelector(".bg-white")
+      .classList.add("scale-100", "opacity-100");
     }, 10);
 
     document.getElementById("cancel-settings").addEventListener("click", () => {
@@ -472,18 +482,18 @@ class ChatRoom {
 }
 
 // Initialize chat when DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
   window.chat = new ChatRoom();
 
   // Close sidebar when clicking backdrop
   document
-    .getElementById("sidebar-backdrop")
-    .addEventListener("click", function () {
-      window.chat.toggleMembersSidebar();
-    });
+  .getElementById("sidebar-backdrop")
+  .addEventListener("click", function() {
+    window.chat.toggleMembersSidebar();
+  });
 
   // Close modals when clicking outside
-  document.addEventListener("click", function (e) {
+  document.addEventListener("click", function(e) {
     if (e.target.id === "message-actions-modal") {
       window.chat.hideMessageActions();
     }
@@ -491,7 +501,7 @@ document.addEventListener("DOMContentLoaded", function () {
       window.chat.hideRoomSettings();
     }
   });
-  window.chat.room_update_bt.addEventListener("click", function (e) {
+  window.chat.room_update_bt.addEventListener("click", function(e) {
     e.preventDefault();
     const r_name = document.getElementById("room_name").value;
     const r_desc = document.getElementById("room_description").value;
@@ -569,6 +579,5 @@ function getCookie(name) {
       }
     }
   }
-  console.log(cookieValue);
   return cookieValue;
 }

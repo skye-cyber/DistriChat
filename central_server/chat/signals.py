@@ -7,16 +7,12 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from users.models import UserProfile
-from django.db import transaction
 from nodes.models import Node
-from chat.models import ChatRoom
 
 logger = logging.getLogger(__name__)
 
 # Thread-local storage for tracking sync origins
 _sync_origin_local = threading.local()
-
-chatRoom_data = None
 
 
 @receiver(post_save, sender=get_user_model())
@@ -102,7 +98,7 @@ class CentralSyncSignalHandler:
         """Async implementation of node sync"""
         try:
             active_nodes = self.get_active_nodes(exclude_node_id=originating_node_id)
-
+            print(f"Syncing {instance} to nodes.")
             if not active_nodes:
                 logger.debug("No active nodes to sync with")
                 return
@@ -147,19 +143,20 @@ class CentralSyncSignalHandler:
 
                     if response.status_code == 200:
                         successful_syncs += 1
-                        logger.debug(f"Sync successful to node {node.name}")
+                        print(f"Sync to node {node.name} successful.")
+                        logger.debug(f"Sync to node {node.name} successful.")
                     else:
                         logger.warning(
-                            f"Sync failed to node {node.name}: {response.status_code}-url:{node.url}/nodes/api/sync/receive/"
+                            f"Sync to node {node.name} failed: {response.status_code}"
                         )
 
                 except requests.exceptions.Timeout:
-                    logger.warning(f"Sync timeout to node {node.name}")
+                    logger.warning(f"Sync to node {node.name} timeout.")
                 except requests.exceptions.ConnectionError:
-                    logger.warning(f"Connection error to node {node.name}")
+                    logger.warning(f"Connection to node {node.name} error.")
                 except Exception as e:
                     raise
-                    logger.error(f"Sync error to node {node.name}: {e}")
+                    logger.error(f"Sync to node {node.name} error: {e}")
 
             logger.info(f"Sync completed: {successful_syncs}/{total_nodes} nodes")
 
@@ -172,11 +169,14 @@ class CentralSyncSignalHandler:
         if data and isinstance(data, dict):
             return data
         if hasattr(instance, "to_sync_dict"):
-            return (
-                instance.to_sync_dict
-                if isinstance(instance.to_sync_dict, dict)
-                else instance.to_sync_dict()
-            )
+            try:
+                return (
+                    instance.to_sync_dict
+                    if isinstance(instance.to_sync_dict, dict)
+                    else instance.to_sync_dict()
+                )
+            except Exception:
+                pass
 
         data = {"id": str(instance.id)}
         model_class = type(instance)
@@ -200,7 +200,7 @@ class CentralSyncSignalHandler:
         return {
             "id": str(instance.id),
             "room_id": str(instance.room_id),
-            "sender_id": str(instance.sender_id),
+            "sender_username": str(instance.sender_username),
             "content": instance.content,
             "message_type": instance.message_type,
             "created_at": instance.created_at,
@@ -215,7 +215,7 @@ class CentralSyncSignalHandler:
             "name": instance.name,
             "description": instance.description or "",
             "room_type": instance.room_type,
-            "created_by_id": str(instance.created_by_id),
+            "created_by_username": str(instance.created_by_username),
             "is_active": instance.is_active,
             "max_members": instance.max_members,
             "created_at": instance.created_at,
@@ -225,21 +225,22 @@ class CentralSyncSignalHandler:
         return {
             "id": str(instance.id),
             "room_id": str(instance.room_id),
-            "user_id": str(instance.user_id),
+            "username": str(instance.username),
             "role": instance.role,
             "joined_at": instance.joined_at,
         }
 
     def _serialize_message_read_status(self, instance):
         return {
+            "id": str(instance.id),
             "message_id": str(instance.message_id),
-            "user_id": str(instance.user_id),
+            "username": str(instance.username),
             "read_at": instance.read_at,
         }
 
     def _serialize_user_session(self, instance):
         return {
-            "user_id": str(instance.user.id),
+            "username": str(instance.user.username),
             "session_key": instance.session_key,
             "ip_address": instance.ip_address or "",
             "user_agent": instance.user_agent or "",
@@ -294,7 +295,6 @@ def central_message_saved(sender, instance, created, **kwargs):
     """Central: Sync message to other nodes"""
     # Check if this save came from a sync operation
     sync_origin = get_central_sync_handler().get_sync_origin()
-    print("Messages:", sync_origin)
     if sync_origin:
         # This save came from a node sync, so propagate to other nodes
         safe_central_sync(
@@ -305,7 +305,7 @@ def central_message_saved(sender, instance, created, **kwargs):
 @receiver(post_save, sender="chat.ChatRoom")
 def central_chatroom_saved(sender, instance, created, **kwargs):
     """Central: Sync chatroom to other nodes"""
-    print("GOT CHATROOM CREATION UPDATE SIGNAL")
+    print("DISPATCHING CHATROOM CREATION UPDATE SIGNAL")
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
         safe_central_sync(
@@ -336,6 +336,7 @@ def central_user_saved(sender, instance, created, **kwargs):
 @receiver(post_save, sender="chat.MessageReadStatus")
 def central_message_status_saved(sender, instance, created, **kwargs):
     """Central: Sync read status to other nodes"""
+    print("\033[1mMESSAGE READ STATUS UPDATE\033[0m")
     sync_origin = get_central_sync_handler().get_sync_origin()
     if sync_origin:
         safe_central_sync(

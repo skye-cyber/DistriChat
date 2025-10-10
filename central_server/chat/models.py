@@ -69,7 +69,7 @@ class ChatRoom(models.Model):
             "description": self.description,
             "room_type": self.room_type,
             "node_id": str(self.node.id),
-            "created_by_id": str(self.created_by.id),
+            "created_by_username": str(self.created_by.username),
             "is_active": self.is_active,
             "max_members": self.max_members,
             "created_at": self.created_at.isoformat() if self.created_at else None,
@@ -107,7 +107,7 @@ class RoomMembership(models.Model):
         return {
             "id": f"{self.room.id}_{self.user.id}",  # Composite key
             "room_id": str(self.room.id),
-            "user_id": str(self.user.id),
+            "username": str(self.user.username),
             "role": self.role,
             "joined_at": self.joined_at.isoformat() if self.last_read else None,
             "last_read": self.last_read.isoformat() if self.last_read else None,
@@ -184,7 +184,7 @@ class Message(models.Model):
         return {
             "id": str(self.id),
             "room_id": str(self.room.id),
-            "sender_id": str(self.sender.id),
+            "sender_username": str(self.sender.username),
             "content": self.content,
             "message_type": self.message_type,
             "created_at": self.created_at.isoformat() if self.created_at else None,
@@ -214,6 +214,15 @@ class MessageReadStatus(models.Model):
 
     def __str__(self):
         return f"{self.user.username} read message at {self.read_at}"
+
+    def to_sync_dict(self):
+        """Convert message to sync dictionary"""
+        return {
+            "id": str(self.id),
+            "username": self.user.username,
+            "message_id": str(self.message.id),
+            "read_at": self.read_at.isoformat(),
+        }
 
 
 class SystemLog(models.Model):

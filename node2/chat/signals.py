@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from django.conf import settings
@@ -73,7 +73,7 @@ class NodeSyncSignalHandler:
         """Check if sync should be performed"""
         # handler.set_defaults()
         origin_id, origin_name = handler.get_sync_origin()
-        print("Env", origin_id, origin_name)
+        logger.debug("Env", origin_id, origin_name)
 
         q_origin_node = PeerNode.objects.filter(id=origin_id)
 
@@ -94,7 +94,7 @@ class NodeSyncSignalHandler:
             and (not same_origin and origin_name != "CENTRAL_SERVER")
         )
 
-    def send_sync_request(self, model_name, instance, action):
+    def send_sync_request(self, model_name, instance, action, data=None):
         """Send sync request to central server with rate limiting"""
         if not self.should_sync():
             logger.debug("\033[36mNot Syncing\033[0m")
@@ -103,18 +103,18 @@ class NodeSyncSignalHandler:
         # Use thread pool for async execution to avoid blocking
         thread = threading.Thread(
             target=self._send_sync_request_async,
-            args=(model_name, instance, action),
+            args=(model_name, instance, action, data),
             daemon=True,
         )
         thread.start()
 
-    def _send_sync_request_async(self, model_name, instance, action):
+    def _send_sync_request_async(self, model_name, instance, action, data=None):
         """Async implementation of sync request"""
         try:
             sync_data = {
                 "model": model_name,
                 "action": action,
-                "data": self.serialize_instance(instance),
+                "data": self.serialize_instance(instance, data),
                 "timestamp": timezone.now().isoformat(),
                 "origin_node_id": str(self.node_id),
             }
@@ -131,15 +131,13 @@ class NodeSyncSignalHandler:
             )
 
             if response.status_code == 200:
-                print(
-                    f"DEBUG: Sync successful for {model_name} {action}: {instance.id}"
-                )
+                print(f"DEBUG: Sync successful for {model_name} {action}")
                 logger.debug(
-                    f"Sync successful for {model_name} {action}: {instance.id}"
+                    f"\033[32mSync to CENTRAL_SERVER successful for {model_name} {action}: {instance.id}\033[0m"
                 )
             else:
                 logger.warning(
-                    f"Sync failed {response.status_code}: {model_name} {action}"
+                    f"\033[31mSync to CENTRAL_SERVER failed {response.status_code}: {model_name} {action}\033[0m"
                 )
 
         except requests.exceptions.Timeout:
@@ -150,11 +148,20 @@ class NodeSyncSignalHandler:
             raise
             logger.error(f"Sync error for {model_name} {action}: {e}")
 
-    def serialize_instance(self, instance):
+    def serialize_instance(self, instance, data=None):
         """Serialize model instance for sync with optimized field selection"""
         # Use model's to_sync_dict if available
+        if data and isinstance(data, dict):
+            return data
         if hasattr(instance, "to_sync_dict"):
-            return instance.to_sync_dict()
+            try:
+                return (
+                    instance.to_sync_dict
+                    if isinstance(instance.to_sync_dict, dict)
+                    else instance.to_sync_dict()
+                )
+            except Exception:
+                pass
 
         data = {"id": str(instance.id)}
         model_class = type(instance)
@@ -180,7 +187,7 @@ class NodeSyncSignalHandler:
         return {
             "id": str(instance.id),
             "room_id": str(instance.room_id),
-            "sender_id": str(instance.sender_id),
+            "sender_username": str(instance.sender_username),
             "content": instance.content,
             "message_type": instance.message_type,
             "created_at": instance.created_at.isoformat(),
@@ -198,7 +205,7 @@ class NodeSyncSignalHandler:
             "description": instance.description or "",
             "room_type": instance.room_type,
             # "node_id": str(self.node_id),
-            "created_by_id": str(instance.created_by_id),
+            "created_by_username": str(instance.created_by_username),
             "is_active": instance.is_active,
             "max_members": instance.max_members,
             "created_at": instance.created_at.isoformat(),
@@ -211,7 +218,7 @@ class NodeSyncSignalHandler:
             "key": f"{instance.room.id}_{instance.user.id}",
             "id": str(instance.id),
             "room_id": str(instance.room_id),
-            "user_id": str(instance.user_id),
+            "username": str(instance.username),
             "role": instance.role,
             "joined_at": instance.joined_at.isoformat(),
             "last_read": instance.last_read,
@@ -220,15 +227,16 @@ class NodeSyncSignalHandler:
     def _serialize_message_read_status(self, instance):
         """Optimized message read status serialization"""
         return {
+            "id": str(instance.id),
             "message_id": str(instance.message_id),
-            "user_id": str(instance.user_id),
+            "username": str(instance.username),
             "read_at": instance.read_at.isoformat(),
         }
 
     def _serialize_user_session(self, instance):
         """Optimized user session serialization"""
         return {
-            "user_id": str(instance.user.id),
+            "username": str(instance.user.username),
             "session_key": instance.session_key,
             "ip_address": instance.ip_address or "",
             "user_agent": instance.user_agent or "",
@@ -238,6 +246,7 @@ class NodeSyncSignalHandler:
     def _serialize_custom_user(self, instance):
         """Optimized custom user serialization"""
         return {
+            "password": instance.password,
             "user_id": str(instance.id),
             "username": instance.username,
             "email": instance.email,
@@ -264,14 +273,14 @@ def get_sync_handler():
     return _sync_handler
 
 
-def safe_sync_signal(instance, model_name, action, created=None):
+def safe_sync_signal(instance, model_name, action, created=None, data=None):
     """
     Safe wrapper for sync signals that handles initialization issues
     """
     try:
         handler = get_sync_handler()
         if handler.should_sync():
-            handler.send_sync_request(model_name, instance, action)
+            handler.send_sync_request(model_name, instance, action, data)
     except Exception as e:
         raise
         logger.error(f"Safe sync signal error for {model_name} {action}: {e}")
@@ -284,22 +293,24 @@ def message_saved(sender, instance, created, **kwargs):
     safe_sync_signal(instance, "message", "create" if created else "update", created)
 
 
-@receiver(post_delete, sender="chat.Message")
+@receiver(pre_delete, sender="chat.Message")
 def message_deleted(sender, instance, **kwargs):
     """Trigger sync when message is deleted"""
-    safe_sync_signal(instance, "message", "delete")
+    safe_sync_signal(instance, "message", "delete", data=instance.to_sync_dict())
 
 
 @receiver(post_save, sender="chat.ChatRoom")
 def chatroom_saved(sender, instance, created, **kwargs):
     """Trigger sync when chat room is created or updated"""
+    print("DISPATCHING ROOM CREATION UPDATE SIGNAL..")
     safe_sync_signal(instance, "chatroom", "create" if created else "update", created)
 
 
-@receiver(post_delete, sender="chat.ChatRoom")
+@receiver(pre_delete, sender="chat.ChatRoom")
 def chatroom_deleted(sender, instance, **kwargs):
     """Trigger sync when chat room is deleted"""
-    safe_sync_signal(instance, "chatroom", "delete")
+    print("DISPATCHING ROOM DELETION SIGNAL..")
+    safe_sync_signal(instance, "chatroom", "delete", data=instance.to_sync_dict())
 
 
 @receiver(post_save, sender="chat.RoomMembership")
@@ -310,10 +321,10 @@ def room_membership_saved(sender, instance, created, **kwargs):
     )
 
 
-@receiver(post_delete, sender="chat.RoomMembership")
+@receiver(pre_delete, sender="chat.RoomMembership")
 def room_membership_deleted(sender, instance, **kwargs):
     """Trigger sync when room membership is removed"""
-    safe_sync_signal(instance, "roommembership", "delete")
+    safe_sync_signal(instance, "roommembership", "delete", data=instance.to_sync_dict())
 
 
 @receiver(post_save, sender="users.CustomUser")
@@ -322,24 +333,28 @@ def user_saved(sender, instance, created, **kwargs):
     safe_sync_signal(instance, "user", "create" if created else "update", created)
 
 
-@receiver(post_delete, sender="users.CustomUser")
+@receiver(pre_delete, sender="users.CustomUser")
 def user_deleted(sender, instance, **kwargs):
     """Trigger sync when user is deleted"""
-    safe_sync_signal(instance, "user", "delete")
+    print("DISPATCHING USER CREATION UPDATE SIGNAL..")
+    safe_sync_signal(instance, "user", "delete", data=instance.to_sync_dict())
 
 
 @receiver(post_save, sender="chat.MessageReadStatus")
 def message_status_saved(sender, instance, created, **kwargs):
     """Trigger sync when message status is saved"""
+    print("DISPATCHING MESSAGE READ SIGNAL..")
     safe_sync_signal(
         instance, "messagereadstatus", "create" if created else "update", created
     )
 
 
-@receiver(post_delete, sender="chat.MessageReadStatus")
+@receiver(pre_delete, sender="chat.MessageReadStatus")
 def message_read_status_deleted(sender, instance, **kwargs):
     """Trigger sync when message status is deleted"""
-    safe_sync_signal(instance, "messagereadstatus", "delete")
+    safe_sync_signal(
+        instance, "messagereadstatus", "delete", data=instance.to_sync_dict()
+    )
 
 
 @receiver(post_save, sender="users.UserSession")
@@ -348,7 +363,7 @@ def session_saved(sender, instance, created, **kwargs):
     safe_sync_signal(instance, "session", "create" if created else "update", created)
 
 
-@receiver(post_delete, sender="users.UserSession")
+@receiver(pre_delete, sender="users.UserSession")
 def session_deleted(sender, instance, **kwargs):
     """Trigger sync when session is deleted"""
-    safe_sync_signal(instance, "session", "delete")
+    safe_sync_signal(instance, "session", "delete", data=instance.to_sync_dict())

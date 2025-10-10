@@ -13,12 +13,11 @@ class ChatRoomAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "room_type",
-        "node",
         "created_by",
         "member_count",
         "created_at",
     )
-    list_filter = ("room_type", "node", "created_at")
+    list_filter = ("room_type", "created_at")
     search_fields = ("name", "description")
     readonly_fields = ("created_at", "updated_at")
 
@@ -45,14 +44,21 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(MessageReadStatus)
 class MessageReadStatusAdmin(admin.ModelAdmin):
-    list_display = ("user", "message", "read_at")
+    list_display = ("user", "message_preview", "read_at")
     list_filter = ("read_at",)
     search_fields = ("user__username", "message__content")
+
+    def message_preview(self, obj):
+        return (
+            obj.content[:50] + "..."
+            if len(obj.message.content) > 50
+            else obj.message.content
+        )
 
 
 @admin.register(SystemLog)
 class SystemLogAdmin(admin.ModelAdmin):
-    list_display = ("level", "category", "message_preview", "user", "node", "timestamp")
+    list_display = ("level", "category", "message_preview", "user", "timestamp")
     list_filter = ("level", "category", "timestamp")
     search_fields = ("message",)
     readonly_fields = ("timestamp",)

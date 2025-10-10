@@ -122,11 +122,45 @@ def chat_room_view(request, room_id):
         return HttpResponseForbidden("You don't have access to this room.")
 
     # Get messages with sender info
-    messages = (
+    room_messages = (
         room.messages.select_related("sender")
         .filter(is_deleted=False)
         .order_by("created_at")[:100]
     )  # Last 100 messages
+
+    """
+    _unread_messages = (
+        room.messages.select_related("sender")
+        .filter(is_deleted=False)
+        .exclude(
+            id__in=MessageReadStatus.objects.filter(user=request.user).values_list(
+                "message__id", flat=True
+            )
+        )
+    )
+    """
+
+    q_unread_messages = (
+        room.messages.select_related("sender")
+        .filter(is_deleted=False)
+        .exclude(sender__username=[request.user.username])
+        .filter(
+            ~Exists(
+                MessageReadStatus.objects.filter(
+                    message__id=OuterRef("id"),
+                )
+            )
+        )
+    )
+
+    unread_messages = (
+        [
+            f"{message.sender}: {message.content[:50]}{'...' if len(message.content) > 50 else ''}"
+            for message in q_unread_messages
+        ]
+        if q_unread_messages.count() < 5
+        else [f"You have {q_unread_messages.count()} unread messages"]
+    )
 
     # Get online members
     online_members = room.members.filter(is_online=True)
@@ -147,7 +181,8 @@ def chat_room_view(request, room_id):
 
     context = {
         "room": room,
-        "messages": messages,
+        "messages": unread_messages,
+        "room_messages": room_messages,
         "online_members": online_members,
     }
     return render(request, "chat/chat_room.html", context)

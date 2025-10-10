@@ -44,9 +44,16 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(MessageReadStatus)
 class MessageReadStatusAdmin(admin.ModelAdmin):
-    list_display = ("user", "message", "read_at")
+    list_display = ("user", "message_preview", "read_at")
     list_filter = ("read_at",)
     search_fields = ("user__username", "message__content")
+
+    def message_preview(self, obj):
+        return (
+            obj.content[:50] + "..."
+            if len(obj.message.content) > 50
+            else obj.message.content
+        )
 
 
 @admin.register(SystemLog)

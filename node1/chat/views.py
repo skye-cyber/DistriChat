@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.contrib import messages
+from django.db.models import Exists, OuterRef
 from django.conf import settings
 from chat.models import ChatRoom, RoomMembership, Message, MessageReadStatus
 from nodes.models import NodeMetadata, PeerNode
@@ -111,7 +112,9 @@ def create_room_view(request):
 @login_required
 def chat_room_view(request, room_id):
     """Chat room view with messages."""
-    room = get_object_or_404(ChatRoom.objects.prefetch_related("members"), id=room_id)
+    room = get_object_or_404(
+        ChatRoom.objects.select_related("node").prefetch_related("members"), id=room_id
+    )
 
     # make sure this user is amrked as online
     request.user.is_online = True
@@ -125,11 +128,45 @@ def chat_room_view(request, room_id):
         return HttpResponseForbidden("You don't have access to this room.")
 
     # Get messages with sender info
-    messages = (
+    room_messages = (
         room.messages.select_related("sender")
         .filter(is_deleted=False)
         .order_by("created_at")[:100]
     )  # Last 100 messages
+
+    """
+    _unread_messages = (
+        room.messages.select_related("sender")
+        .filter(is_deleted=False)
+        .exclude(
+            id__in=MessageReadStatus.objects.filter(user=request.user).values_list(
+                "message__id", flat=True
+            )
+        )
+    )
+    """
+
+    q_unread_messages = (
+        room.messages.select_related("sender")
+        .filter(is_deleted=False)
+        .exclude(sender__username=[request.user.username])
+        .filter(
+            ~Exists(
+                MessageReadStatus.objects.filter(
+                    message__id=OuterRef("id"),
+                )
+            )
+        )
+    )
+
+    unread_messages = (
+        [
+            f"{message.sender}: {message.content[:50]}{'...' if len(message.content) > 50 else ''}"
+            for message in q_unread_messages
+        ]
+        if q_unread_messages.count() < 5
+        else [f"You have {q_unread_messages.count()} unread messages"]
+    )
 
     # Get online members
     online_members = room.members.filter(is_online=True)
@@ -150,7 +187,8 @@ def chat_room_view(request, room_id):
 
     context = {
         "room": room,
-        "messages": messages,
+        "messages": unread_messages,
+        "room_messages": room_messages,
         "online_members": online_members,
     }
     return render(request, "chat/chat_room.html", context)
@@ -250,6 +288,7 @@ def get_room_messages(request, room_id):
     before = request.GET.get("before")
     limit = int(request.GET.get("limit", 50))
 
+    # Query excluding read messages
     messages_query = (
         room.messages.select_related("sender")
         .filter(is_deleted=False)
@@ -263,11 +302,11 @@ def get_room_messages(request, room_id):
         except ValueError:
             pass
 
-    messages = list(messages_query[:limit])
-    messages.reverse()  # Return in chronological order
+    room_messages = list(messages_query[:limit])
+    room_messages.reverse()  # Return in chronological order
 
     messages_data = []
-    for msg in messages:
+    for msg in room_messages:
         messages_data.append(
             {
                 "id": str(msg.id),
@@ -281,7 +320,9 @@ def get_room_messages(request, room_id):
             }
         )
 
-    return JsonResponse({"messages": messages_data, "has_more": len(messages) == limit})
+    return JsonResponse(
+        {"room_messages": messages_data, "has_more": len(room_messages) == limit}
+    )
 
 
 @login_required

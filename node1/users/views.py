@@ -39,6 +39,11 @@ def register_view(request):
             # simpler
             # login(request, user, backend="users.backends.EmailBackend")
 
+            # Update user online status
+            request.user.is_online = False
+
+            # Update lats seen
+            request.user.update_last_seen()
             messages.success(request, "Registration successful! Welcome to DistriChat.")
             return redirect("chat:dashboard")
     else:

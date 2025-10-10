@@ -5,7 +5,8 @@
 {% block header %}
     {# disable header #}
 {% endblock %}
-<div class="h-full max-h-full w-screen max-h-full flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 overflow-y-hidden">
+
+<div class="fixed z-[0] top-0 bottom-0 left-0 right-0 h-screen w-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden">
   <span id="user_meta" class="hidden" data-username="{{ user.username }}" data-initials="{{ user.username|first|upper }}"></span>
   <!-- Chat Header -->
   <div class="bg-white shadow-lg border-b border-gray-200">
@@ -58,7 +59,7 @@
                   <span class="flex gap-1"><span id="online-display">{{ online_members.count }}</span> online</span>
                 </span>
                 <span>•</span>
-                <span class="flex gap-1"><span id="member-display">{{ room.member_count }}</span> total <span class="hidden sm:flex"> members</span></span>
+                <span class="flex gap-1"><span id="membership-display">{{ room.member_count }}</span> total <span class="hidden sm:flex"> members</span></span>
                 <span>•</span>
                 <span class="flex items-center space-x-1">
                   <svg
@@ -126,7 +127,7 @@
     </div>
   </div>
 
-  <div class="flex-1 flex max-w-full md:max-w-7xl lg:max-w-full mx-auto w-full h-full max-h-[79vh] sm:max-h-[82vh] md:max-h-[88vh]">
+  <div class="flex-1 flex max-w-full md:max-w-7xl lg:max-w-full mx-auto w-full h-[100vh] max-h-[79vh] sm:max-h-[82vh] md:max-h-[88vh]">
     <!-- Messages Area -->
     <div class="flex-1 flex flex-col">
       <!-- Messages Container -->
@@ -161,7 +162,7 @@
           </p>
         </div>
         <!-- Sample Messages (will be replaced by real messages) -->
-        {% for message in messages %}
+        {% for message in room_messages %}
         <div
           class="message-item {% if message.sender == user %}message-sent{% else %}message-received{% endif %} animate-fade-in"
         >
@@ -327,7 +328,7 @@
           <button
             type="submit"
             id="send-button"
-            class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white p-4 md:px-6 py-3 rounded-2xl font-semibold transition-all duration-200 hover:scale-105 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-2 py-2 md:px-6 py-3 rounded-2xl font-semibold transition-all duration-200 hover:scale-105 shadow-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg
               class="w-5 h-5"
@@ -348,10 +349,11 @@
       </div>
     </div>
 
+
     <!-- Online Members Sidebar -->
     <div
       id="members-sidebar"
-      class="w-80 bg-white border-l border-gray-200 transform transition-transform duration-300 ease-in-out translate-x-full lg:translate-x-0 lg:static lg:w-80 absolute right-0 top-0 bottom-0 z-40"
+      class="w-80 bg-white border-l border-gray-200 transform transition-transform duration-300 ease-in-out translate-x-full lg:translate-x-0 lg:static lg:w-80 absolute right-0 top-0 bottom-0 z-[50]"
     >
       <div class="p-6 border-b border-gray-200">
         <div class="flex items-center justify-between">
@@ -440,6 +442,11 @@
         </div>
       </div>
     </div>
+    <!-- Backdrop for mobile sidebar -->
+    <div
+      id="sidebar-backdrop"
+      class="fixed inset-0 bg-black bg-opacity-50 z-[30] hidden"
+    ></div>
   </div>
 </div>
 
@@ -540,11 +547,7 @@
   </div>
 </div>
 
-<!-- Backdrop for mobile sidebar -->
-<div
-  id="sidebar-backdrop"
-  class="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden hidden"
-></div>
+
 {% endblock %} {% block extra_js %}
 <script src="{% static 'js/chat.js' %}"></script>
 {% endblock %}
