@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.contrib import messages
+from django.db.models import Exists, OuterRef
 from chat.models import ChatRoom, RoomMembership, Message, MessageReadStatus
 from nodes.models import Node
 from users.models import UserActivity
