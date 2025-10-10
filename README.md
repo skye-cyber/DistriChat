@@ -314,8 +314,8 @@ districhat/
 
 1. **Clone and setup the project**:
 ```bash
-git clone https://github.com/skye-cyber/districhat.git
-cd districhat
+git clone https://github.com/skye-cyber/DistriChat.git
+cd DistriChat
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
